@@ -1,0 +1,49 @@
+# Python and notebook caches
+__pycache__/
+__marimo__/
+.ipynb_checkpoints/
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# Local environment and editor files
+.DS_Store
+.direnv/
+.envrc
+.env
+.key
+.agents/
+.codex/
+AGENTS.md
+
+# Frontend dependencies and build output
+node_modules/
+src/frontend/dist/
+.vite/
+
+# Runtime state. Only the empty library placeholders are versioned.
+/logs/
+/projects/
+/plan_scratch/
+/sessions/
+/workspace/**
+!/workspace/library/
+!/workspace/library/datasets/
+!/workspace/library/files/
+!/workspace/**/.gitkeep
+
+# Local data and generated demo output
+/data/
+/demo/outputs/
+/demo/data/*
+!/demo/data/reference_lohoff-2a.png
+!/demo/data/reference_lohoff-2b.png
+!/demo/data/reference_lohoff-2c.png
+!/demo/data/reference_lohoff-2d.png
+!/demo/data/method_lohoff-2d.png
+!/demo/data/instructions_lohoff-2d.md
+
+# Benchmark inputs and runs remain local. Existing tracked files stay tracked.
+/benchmark/
+/.bench_workers/
+/papers-*.zip
