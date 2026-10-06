@@ -5,305 +5,538 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="TissueAgent — a role-based multi-agent framework for reproducible spatial transcriptomics workflows."
+      content="TissueAgent is a role-based multi-agent framework that turns open-ended spatial transcriptomics requests into auditable, runnable workflows."
     />
-    <meta name="theme-color" content="#f4f2ed" />
-    <title>TissueAgent · Reproducible spatial analysis</title>
+    <meta name="theme-color" content="#f4f7f8" />
+    <meta name="color-scheme" content="light" />
+    <title>TissueAgent: Reproducible Spatial Transcriptomics Workflows</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&amp;family=DM+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500&amp;display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
     <script src="./script.js" defer></script>
   </head>
   <body>
-    <header class="site-header">
-      <a class="brand" href="#/overview" aria-label="TissueAgent overview">
-        <span class="brand-mark" aria-hidden="true">
-          <span></span><span></span><span></span><span></span>
-        </span>
-        <span>TissueAgent</span>
-      </a>
+    <a class="skip-link" href="#abstract">Skip to content</a>
 
-      <nav class="page-tabs" aria-label="Project pages">
-        <a href="#/overview" data-route-link="overview">Overview</a>
-        <a href="#/biofigbench-spatial" data-route-link="biofigbench-spatial">
-          BioFigBench&ndash;Spatial
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#top" aria-label="TissueAgent, back to top">
+          <img src="./favicon.svg" alt="" width="28" height="28" />
+          <span>TissueAgent</span>
         </a>
-      </nav>
-
-      <a
-        class="header-github"
-        href="https://github.com/ma-compbio/TissueAgent"
-        target="_blank"
-        rel="noreferrer"
-        aria-label="Open the TissueAgent GitHub repository"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.75.41-1.27.74-1.56-2.57-.29-5.27-1.29-5.27-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.97 10.97 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.41-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z" />
-        </svg>
-        <span>GitHub</span>
-      </a>
+        <nav class="topnav" aria-label="Sections">
+          <a href="#framework" data-spy="framework">Framework</a>
+          <a href="#method" data-spy="method">Method</a>
+          <a href="#results" data-spy="results">Results</a>
+        </nav>
+        <a class="topbar-code" href="https://github.com/ma-compbio-lab/TissueAgent" target="_blank" rel="noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.75.41-1.27.74-1.56-2.57-.29-5.27-1.29-5.27-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.97 10.97 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.41-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z" /></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+      <div class="read-progress" aria-hidden="true"><span></span></div>
     </header>
 
-    <main>
-      <article class="page is-active" data-route-page="overview">
-        <section class="hero shell">
-          <div class="hero-copy reveal">
-            <p class="eyebrow"><span></span> Spatial intelligence, made reproducible</p>
-            <h1>
-              Tissue<span>Agent</span>
-            </h1>
+    <main id="top">
+      <!-- ============================== Hero ============================== -->
+      <section class="hero">
+        <div class="wrap">
+          <div class="hero-head">
+            <h1 class="hero-title">TissueAgent</h1>
             <p class="hero-subtitle">
-              A role-based multi-agent framework for reproducible spatial
-              transcriptomics workflows.
+              A Role-Based Multi-Agent Framework for Reproducible Spatial Transcriptomics Workflows
             </p>
-            <p class="authors">
-              <span>Author names forthcoming</span>
-              <i aria-hidden="true"></i>
-              Carnegie Mellon University
+
+            <ul class="authors" aria-label="Authors">
+              <li>Wenduo Cheng<sup>1,*,‡</sup></li>
+              <li>Dustin Miao<sup>1,*</sup></li>
+              <li>Spencer Krieger<sup>1</sup></li>
+              <li>Junjie Tang<sup>1</sup></li>
+              <li>Shuaike Shen<sup>1</sup></li>
+              <li>Yangyuan Zhang<sup>1</sup></li>
+              <li>Evan Trop<sup>2</sup></li>
+              <li>Mingqian Ma<sup>2</sup></li>
+              <li>Qing Xiao<sup>3</sup></li>
+              <li>Hong Shen<sup>3</sup></li>
+              <li>Jian Ma<sup>1,‡</sup></li>
+            </ul>
+            <ol class="affiliations">
+              <li><sup>1</sup>Ray and Stephanie Lane Computational Biology Department, Carnegie Mellon University</li>
+              <li><sup>2</sup>Machine Learning Department, Carnegie Mellon University</li>
+              <li><sup>3</sup>Human-Computer Interaction Institute, Carnegie Mellon University</li>
+            </ol>
+            <p class="author-notes">
+              <span><sup>*</sup>Equal contribution</span>
+              <span><sup>‡</sup>Correspondence: <a href="mailto:wenduoc@andrew.cmu.edu">wenduoc@andrew.cmu.edu</a>, <a href="mailto:jianma@cs.cmu.edu">jianma@cs.cmu.edu</a></span>
             </p>
+
             <div class="hero-actions">
-              <a
-                class="button button-primary"
-                href="https://github.com/ma-compbio/TissueAgent"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.75.41-1.27.74-1.56-2.57-.29-5.27-1.29-5.27-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.97 10.97 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.41-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z" />
-                </svg>
+              <span class="btn btn-quiet" aria-disabled="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 2.5h7l5 4.5v14.5h-12zM13 2.5V7h5.5M9.5 12h6M9.5 15.5h6" /></svg>
+                Paper (coming soon)
+              </span>
+              <a class="btn btn-ink" href="https://github.com/ma-compbio-lab/TissueAgent" target="_blank" rel="noreferrer">
+                <svg viewBox="0 0 24 24" aria-hidden="true" class="fill"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.75.41-1.27.74-1.56-2.57-.29-5.27-1.29-5.27-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.97 10.97 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.41-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z" /></svg>
                 Code
               </a>
-              <a class="button button-secondary placeholder-link" href="#manuscript-placeholder">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M6.5 2.5h7L18.5 7v14.5h-12zM13 2.5V7h5.5M9.5 12h6M9.5 15.5h6" />
-                </svg>
-                Paper <span>coming soon</span>
-              </a>
             </div>
-          </div>
-
-          <div class="hero-visual reveal" aria-label="Stylized spatial tissue and agent network">
-            <div class="hero-grid"></div>
-            <div class="tissue-map">
-              <span class="cell cell-a"></span>
-              <span class="cell cell-b"></span>
-              <span class="cell cell-c"></span>
-              <span class="cell cell-d"></span>
-              <span class="cell cell-e"></span>
-              <span class="cell cell-f"></span>
-              <span class="cell cell-g"></span>
-              <span class="cell cell-h"></span>
-              <span class="cell cell-i"></span>
-              <span class="cell cell-j"></span>
-              <span class="cell cell-k"></span>
-              <span class="cell cell-l"></span>
-              <span class="cell cell-m"></span>
-            </div>
-            <div class="orbit orbit-one"></div>
-            <div class="orbit orbit-two"></div>
-            <div class="agent-node node-plan"><b>01</b><span>Plan</span></div>
-            <div class="agent-node node-build"><b>02</b><span>Execute</span></div>
-            <div class="agent-node node-check"><b>03</b><span>Evaluate</span></div>
-            <div class="visual-caption">A coordinated system, not a single prompt.</div>
-          </div>
-        </section>
-
-        <div class="marquee" aria-hidden="true">
-          <div>
-            <span>Plan</span><i></i><span>Recruit</span><i></i><span>Execute</span><i></i>
-            <span>Evaluate</span><i></i><span>Report</span><i></i><span>Replan</span><i></i>
-            <span>Plan</span><i></i><span>Recruit</span><i></i><span>Execute</span><i></i>
-            <span>Evaluate</span><i></i><span>Report</span><i></i><span>Replan</span><i></i>
           </div>
         </div>
+      </section>
 
-        <section class="abstract-section shell section-pad reveal" id="abstract">
-          <div class="section-index">01 <span>/ 03</span></div>
-          <div class="section-heading">
-            <p class="kicker">Abstract</p>
-            <h2>From open-ended request to an <em>auditable analysis.</em></h2>
-          </div>
-          <div class="abstract-copy">
+      <!-- ============================== Abstract ============================== -->
+      <section class="section" id="abstract">
+        <div class="wrap">
+          <h2 class="section-title">Abstract</h2>
+          <div class="abstract">
             <p>
-              Spatial transcriptomics analysis demands more than code generation:
-              it requires biological judgment, tool selection, iterative quality
-              control, and clear provenance across a heterogeneous workflow.
-              TissueAgent turns natural-language requests and multimodal inputs—including
-              datasets, papers, and figures—into runnable, inspectable analyses.
+              Spatial transcriptomics (ST) profiles gene expression in situ, but analysis remains slow
+              and hard to reproduce because workflows span heterogeneous platforms, file formats, and
+              toolchains and often require substantial domain expertise and programming effort. Here we
+              present <strong>TissueAgent</strong>, a role-based multi-agent framework that turns open-ended
+              natural-language ST requests and multimodal inputs (data, PDFs, images) into auditable,
+              runnable workflows. A single evolving plan coordinates specialized agents and records
+              rationales, step status, and artifact links, enabling transparent provenance and targeted
+              replanning. TissueAgent uses self-evolving skills to distill execution traces, errors, and
+              recovery strategies into reusable procedural knowledge, allowing workflows to improve
+              across runs.
             </p>
             <p>
-              A shared evolving plan coordinates specialized agents for planning,
-              recruitment, execution, evaluation, and reporting. Every step records
-              its rationale, status, and artifacts, enabling targeted replanning when
-              assumptions fail while preserving a coherent trail from question to result.
-              The framework supports tasks spanning figure recreation, cell annotation,
-              cell–cell communication, differential expression, and deconvolution.
+              Across diverse ST datasets, TissueAgent generates reproducible notebooks and supports
+              cell type and niche annotation, cell-type deconvolution, and cell–cell communication
+              analysis, outperforming available baselines on key spatial tasks. In a reproduce-then-apply
+              evaluation, TissueAgent reconstructs figure panels and recovers their underlying workflows
+              from published studies using only text and images, without author-provided code, and
+              transfers the recovered workflows to new datasets. TissueAgent also integrates external
+              domain agents to support collaborative analysis. Together, TissueAgent enables reproducible
+              end-to-end ST analysis and workflow reuse, helping bridge the gap between reading a
+              spatial study and reusing its workflow in practice.
             </p>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="method-section" id="method">
-          <div class="shell section-pad reveal">
-            <div class="section-index">02 <span>/ 03</span></div>
-            <div class="section-heading method-heading">
-              <div>
-                <p class="kicker">Method overview</p>
-                <h2>One living plan.<br /><em>Many expert roles.</em></h2>
-              </div>
+      <!-- ============================== At a glance ============================== -->
+      <section class="section section-tight" aria-labelledby="glance-title">
+        <div class="wrap">
+          <h2 class="section-title" id="glance-title">At a glance</h2>
+          <ul class="glance">
+            <li class="glance-item">
+              <p class="glance-value" data-count="22" data-suffix=" / 22">22 / 22</p>
+              <p class="glance-label">cell types recovered when reproducing a custom spatial-heterogeneity analysis from a paper</p>
+              <p class="glance-compare">Biomni recovered 12</p>
+            </li>
+            <li class="glance-item">
+              <p class="glance-value" data-count="1.33" data-decimals="2">1.33</p>
+              <p class="glance-label">mean rank in cell-type annotation across three datasets and four metrics</p>
+              <p class="glance-compare">Next best, STAgent: 2.92</p>
+            </li>
+            <li class="glance-item">
+              <p class="glance-value" data-count="100" data-suffix="%">100%</p>
+              <p class="glance-label">of deconvolution benchmark runs completed</p>
+              <p class="glance-compare">Other agents: 60–80%</p>
+            </li>
+            <li class="glance-item">
+              <p class="glance-value" data-count="1" data-decimals="2">1.00</p>
+              <p class="glance-label">top-K overlap between repeated cell–cell communication runs</p>
+              <p class="glance-compare">SpatialAgent: 0.83</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ============================== Framework ============================== -->
+      <section class="section" id="framework">
+        <div class="wrap">
+          <h2 class="section-title">Framework</h2>
+          <div class="prose">
+            <p>
+              TissueAgent is modeled on how a biotech team handles an analysis request. It plans the
+              workflow, recruits specialists, coordinates execution, checks the outputs, and returns
+              validated results. Five orchestration agents share one plan, and a suite of internal and
+              external expert agents does the hands-on work in Python and R. Select a role to see what it
+              does.
+            </p>
+          </div>
+
+          <div class="pipeline" data-pipeline>
+            <div class="pipeline-loop" aria-hidden="true"><span>Replan with targeted feedback</span></div>
+            <ol class="pipeline-roles" role="tablist" aria-label="Orchestration roles">
+              <li><button type="button" role="tab" data-role="planner" aria-selected="true"><span class="role-n">1</span>Planner</button></li>
+              <li><button type="button" role="tab" data-role="recruiter" aria-selected="false"><span class="role-n">2</span>Recruiter</button></li>
+              <li><button type="button" role="tab" data-role="manager" aria-selected="false"><span class="role-n">3</span>Manager</button></li>
+              <li><button type="button" role="tab" data-role="evaluator" aria-selected="false"><span class="role-n">4</span>Evaluator</button></li>
+              <li><button type="button" role="tab" data-role="reporter" aria-selected="false"><span class="role-n">5</span>Reporter</button></li>
+            </ol>
+            <div class="pipeline-detail" role="tabpanel" aria-live="polite" data-pipeline-detail></div>
+          </div>
+
+          <div class="modes">
+            <div class="mode">
+              <h3>Autopilot</h3>
+              <p>Runs the whole workflow end to end with minimal intervention. The notebook and CLI entry points always run this way.</p>
+            </div>
+            <div class="mode">
+              <h3>Copilot</h3>
+              <p>Pauses after planning and again after agent assignment, so you can approve the plan, edit it, or send feedback that rewinds the run to the Planner.</p>
+            </div>
+          </div>
+
+          <figure class="paper-fig paper-fig-tall">
+            <button class="paper-fig-open" type="button" data-zoom aria-label="Enlarge Figure 1">
+              <img src="./figures/fig1_overview.webp" width="2200" height="2550" loading="lazy"
+                alt="Figure 1: TissueAgent concept, workflow, shared plan updates, and self-evolving skills." />
+            </button>
+            <figcaption>
+              <b>Figure 1.</b> Overview of TissueAgent. <b>a</b>, A user submits a query with dataset
+              files, PDFs, or images, and TissueAgent routes it to expert agents for a range of spatial
+              tasks. <b>b</b>, The core workflow of Planner, Recruiter, Manager, Evaluator, and Reporter,
+              supported by plan, agent, and skill registries. <b>c</b>, A single evolving plan serves as
+              shared memory and coordination protocol. <b>d</b>, Self-evolving skills accumulate
+              procedural knowledge from execution experience.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ============================== Method ============================== -->
+      <section class="section section-alt" id="method">
+        <div class="wrap">
+          <h2 class="section-title">Method</h2>
+
+          <!-- Evolving plan -->
+          <div class="split">
+            <div class="split-text">
+              <h3 class="sub-title">One evolving plan</h3>
               <p>
-                TissueAgent separates strategic reasoning from domain execution,
-                then closes the loop with artifact-aware evaluation and reporting.
+                Every agent reads from and writes to the same plan. The Planner records each step's
+                name, rationale, and expected artifacts. The Recruiter adds the assigned expert agent
+                and its skills. The Manager records whether each step succeeded, failed, or was skipped,
+                and links the files it produced.
+              </p>
+              <p>
+                The plan is a coordination protocol, a shared memory, and a provenance record at the
+                same time. It replaces a long chat history with a compact record of what was attempted,
+                what finished, and what failed, so errors are easier to spot before they cascade.
               </p>
             </div>
-            <figure class="method-figure">
-              <div class="figure-toolbar">
-                <p><span></span> TissueAgent system architecture</p>
-                <a href="./figures/tissueagent_overall_design_v1.svg" target="_blank">
-                  View full size
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg>
-                </a>
+            <div class="plan-demo" data-plan>
+              <div class="plan-head">
+                <span class="plan-file">plan.md</span>
+                <button class="plan-replay" type="button" data-plan-replay>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" /></svg>
+                  Replay
+                </button>
               </div>
-              <div class="figure-window">
-                <img
-                  src="./figures/tissueagent_overall_design_v1.svg"
-                  alt="TissueAgent architecture showing the user, orchestration roles, registries, expert agents, and workflow outputs"
-                />
+              <ol class="plan-steps" data-plan-steps></ol>
+              <p class="plan-verdict" data-plan-verdict></p>
+              <ul class="plan-key" aria-label="Who writes each field">
+                <li><i class="k-planner"></i>Planner</li>
+                <li><i class="k-recruiter"></i>Recruiter</li>
+                <li><i class="k-manager"></i>Manager</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Recovery layers -->
+          <div class="split split-reverse">
+            <div class="split-text">
+              <h3 class="sub-title">Three layers of failure recovery</h3>
+              <p>
+                Role separation lets each kind of failure be caught where it starts. Expert agents fix
+                local errors inside their own loops. The Manager reruns a stuck step with new inputs,
+                tools, or strategy. The Evaluator sends the run back to the Planner when the plan itself
+                falls short.
+              </p>
+            </div>
+            <div class="layers" aria-label="Nested recovery layers">
+              <div class="layer layer-3">
+                <p><b>Evaluator</b> replans the workflow when its outputs don't satisfy the request</p>
+                <div class="layer layer-2">
+                  <p><b>Manager</b> reruns a failed step with revised inputs, tools, or strategy</p>
+                  <div class="layer layer-1">
+                    <p><b>Expert agent</b> resolves local execution errors, such as code bugs, in its own ReAct loop</p>
+                  </div>
+                </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Registries -->
+          <h3 class="sub-title">Three registries of reusable knowledge</h3>
+          <div class="registries">
+            <div class="registry">
+              <h4>Plan Registry</h4>
+              <p>Workflow templates from earlier analyses. The Planner retrieves one when it builds a new plan.</p>
+              <ul class="chips">
+                <li>cell_annotation</li><li>tissue_niche_annotation</li><li>spatial_deconvolution</li>
+                <li>ccc_ensemble</li><li>figure_recreation</li><li>hypothesis_testing</li>
+              </ul>
+            </div>
+            <div class="registry">
+              <h4>Agent Registry</h4>
+              <p>Internal and external expert agents with their capabilities. The Recruiter picks one for each step.</p>
+              <ul class="chips">
+                <li>Coding</li><li>Cell Annotator</li><li>Spot</li><li>Single Cell</li><li>Hypothesis</li><li>Critic</li>
+                <li class="chip-ext">GeneAgent</li><li class="chip-ext">GeneGPT</li><li class="chip-ext">CellVoyager</li><li class="chip-ext">mLLMCelltype</li>
+              </ul>
+              <p class="chips-note">Tinted entries are external agents, each wrapping a third-party codebase.</p>
+            </div>
+            <div class="registry">
+              <h4>Skill Registry</h4>
+              <p>Task-specific execution knowledge that travels with the assigned agent into each step.</p>
+              <ul class="chips">
+                <li>figure-reproduce</li><li>cell_type_annotation</li><li>deconvolution_card</li>
+                <li>ccc-liana</li><li>ccc-commot</li><li>r-execution</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Self-evolving skills -->
+          <div class="evolve" data-evolve>
+            <div class="evolve-intro">
+              <h3 class="sub-title">Self-evolving skills</h3>
+              <p>
+                The evolving plan adapts within a run. Self-evolving skills carry lessons across runs.
+                TissueAgent saves every run as a full trace, mines it for error–correction pairs and
+                avoidable cost, and proposes edits to its skills and plan templates. Guardrails confine
+                edits to natural-language knowledge files, and a reviewer can approve each one before it
+                is committed.
+              </p>
+            </div>
+            <ol class="evolve-steps" role="tablist" aria-label="Skill evolution cycle">
+              <li><button type="button" role="tab" data-evolve-step="0" aria-selected="true"><span>1</span>Save</button></li>
+              <li><button type="button" role="tab" data-evolve-step="1" aria-selected="false"><span>2</span>Extract</button></li>
+              <li><button type="button" role="tab" data-evolve-step="2" aria-selected="false"><span>3</span>Distill</button></li>
+              <li><button type="button" role="tab" data-evolve-step="3" aria-selected="false"><span>4</span>Approve</button></li>
+              <li><button type="button" role="tab" data-evolve-step="4" aria-selected="false"><span>5</span>Commit</button></li>
+            </ol>
+            <div class="evolve-body">
+              <p class="evolve-desc" role="tabpanel" aria-live="polite" data-evolve-desc></p>
+              <div class="skill-file" aria-label="Skill file being updated">
+                <p class="skill-file-name">deconvolution_card / SKILL.md</p>
+                <div class="skill-file-body">
+                  <p class="sk-h">## Common issues</p>
+                  <p class="sk-line" data-evolve-line><span class="sk-tag sk-warn">warning</span><span>Wrong matrix orientation: CARD expects genes × cells, AnnData is cells × genes.</span></p>
+                  <p class="sk-line" data-evolve-line><span class="sk-tag sk-fix">fix</span><span>Transpose on export with adata.X.T before writing the count matrix.</span></p>
+                  <p class="sk-line" data-evolve-line><span class="sk-tag sk-check">check</span><span>Assert rownames(sc_meta) == colnames(sc_count) before fitting.</span></p>
+                </div>
+              </div>
+            </div>
+            <ul class="evolve-results">
+              <li><b data-count="18.3" data-decimals="1" data-suffix="%">18.3%</b> fewer tokens per run after three optimizer rounds</li>
+              <li><b data-count="36.8" data-decimals="1" data-suffix="%">36.8%</b> less wall-clock time</li>
+              <li><b data-count="12" data-suffix=" / 12">12 / 12</b> runs matched the expert reference exactly</li>
+            </ul>
+            <p class="note">Measured on the cell–cell communication workflow over three datasets, starting from a deliberately minimal plan template.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================== Results ============================== -->
+      <section class="section" id="results">
+        <div class="wrap">
+          <h2 class="section-title">Results</h2>
+
+          <!-- R1 Reproduce then apply -->
+          <article class="result" id="reproduce">
+            <h3 class="sub-title">Reproducing published workflows and applying them to new data</h3>
+            <div class="prose">
+              <p>
+                Papers often share data and Methods text but not runnable code. In the reproduce-then-apply
+                setting, TissueAgent reconstructs figure panels from a published study using only the
+                reference image, the dataset, and the text. It then transfers the recovered workflow to a
+                new dataset.
+              </p>
+            </div>
+            <ol class="flow" aria-label="Reproduce-then-apply steps">
+              <li><span>1</span><b>Reference paper</b>Figure, data, and Methods. No author code.</li>
+              <li><span>2</span><b>Reconstruct</b>Inspect, render, compare, and repair.</li>
+              <li><span>3</span><b>Reproduce</b>The figure and the code behind it.</li>
+              <li><span>4</span><b>Apply</b>Run the recovered workflow on a new dataset.</li>
+            </ol>
+
+            <div class="split">
+              <div class="split-text">
+                <p>
+                  As a stress test we used panel 2E of Lohoff et al., a violin plot of gene-wise
+                  t-statistics built on a custom spatial-heterogeneity score. Recovering it means
+                  rebuilding a regression model from the Methods description. TissueAgent reproduced all
+                  22 cell types and matched the original ordering closely (Spearman ρ ≈ 0.9). Biomni
+                  recovered 12 cell types (ρ ≈ 0.5), and SpatialAgent produced an invalid figure.
+                </p>
+                <p>
+                  Applied to a Stereo-seq mouse embryo from Chen et al., the recovered workflow kept the
+                  study's key patterns, such as surface ectoderm along the tissue periphery. On paired
+                  ovarian cancer data from Yeh et al., analyses rebuilt on the CosMx discovery set and
+                  transferred to the Visium validation set recovered the published findings without the
+                  agent ever seeing the target figures.
+                </p>
+              </div>
+              <div class="chart-card" data-chart="lohoff"></div>
+            </div>
+
+            <h4 class="mini-title">Recovering known ground truth in simulated data</h4>
+            <ul class="facts">
+              <li><b>0.989</b><span>mean correlation between inferred and true cell-type proportions when reconstructing a cell2location analysis</span></li>
+              <li><b>0.981</b><span>adjusted Rand index for recovered tissue niches, against 0.949 for the reference workflow</span></li>
+              <li><b>3 of 4</b><span>ground-truth ligand–receptor pairs ranked in the top ten interactions</span></li>
+            </ul>
+
+            <figure class="paper-fig paper-fig-tall">
+              <button class="paper-fig-open" type="button" data-zoom aria-label="Enlarge Figure 3">
+                <img src="./figures/fig3_reproduce_apply.webp" width="2200" height="2666" loading="lazy"
+                  alt="Figure 3: Reproduce-then-apply evaluation on Lohoff et al. and transfer to Chen et al. Stereo-seq data." />
+              </button>
               <figcaption>
-                <span>Figure 1.</span> The framework coordinates reusable plans,
-                internal and external expert agents, skills, execution artifacts,
-                and targeted feedback in a unified workflow.
+                <b>Figure 3.</b> Reproduce-then-apply evaluation. <b>a</b>, From a reference figure,
+                its data, and the Methods text, TissueAgent reconstructs the analysis, iteratively renders
+                and repairs the reproduction, and applies the recovered workflow to new data. <b>b</b>,
+                Published panels 2a–e from Lohoff et al. <b>c</b>, TissueAgent reproductions in the same
+                layout. <b>d</b>, Human expert and LLM-judge evaluations of TissueAgent, SpatialAgent, and
+                Biomni. <b>e</b>, The recovered workflow applied to a Stereo-seq mouse embryo section from
+                Chen et al.
               </figcaption>
             </figure>
-          </div>
-        </section>
+          </article>
 
-        <section class="highlights-section shell section-pad" id="highlights">
-          <div class="section-index reveal">03 <span>/ 03</span></div>
-          <div class="section-heading highlight-heading reveal">
-            <p class="kicker">Method highlights</p>
-            <h2>Built for the parts of science that<br /><em>do not fit in one prompt.</em></h2>
-          </div>
-
-          <div class="highlight-grid">
-            <article class="highlight-card card-featured reveal">
-              <div class="card-topline"><span>01</span><i>Coordination</i></div>
-              <div class="mini-plan" aria-hidden="true">
-                <span class="done">Question</span>
-                <b></b>
-                <span class="active">Plan</span>
-                <b></b>
-                <span>Artifacts</span>
-              </div>
-              <div>
-                <h3>A single evolving plan</h3>
-                <p>
-                  One source of truth tracks rationale, ownership, step status,
-                  and outputs across the entire analysis—not just the latest message.
-                </p>
-              </div>
-            </article>
-
-            <article class="highlight-card reveal">
-              <div class="card-topline"><span>02</span><i>Architecture</i></div>
-              <div class="role-stack" aria-hidden="true">
-                <span>P</span><span>R</span><span>M</span><span>E</span><span>R</span>
-              </div>
-              <div>
-                <h3>Explicit role separation</h3>
-                <p>
-                  Planning, recruitment, management, evaluation, and reporting
-                  remain independently inspectable and easier to improve.
-                </p>
-              </div>
-            </article>
-
-            <article class="highlight-card reveal">
-              <div class="card-topline"><span>03</span><i>Extensibility</i></div>
-              <div class="agent-glyph" aria-hidden="true">
-                <div class="glyph-core">TA</div>
-                <span style="--angle: 0deg"></span><span style="--angle: 72deg"></span>
-                <span style="--angle: 144deg"></span><span style="--angle: 216deg"></span>
-                <span style="--angle: 288deg"></span>
-              </div>
-              <div>
-                <h3>Specialists plug in</h3>
-                <p>
-                  Internal tools and external research agents join through a common
-                  registry, letting workflows recruit the expertise they actually need.
-                </p>
-              </div>
-            </article>
-
-            <article class="highlight-card card-dark reveal">
-              <div class="card-topline"><span>04</span><i>Reproducibility</i></div>
-              <div class="artifact-log" aria-hidden="true">
-                <span><b>✓</b> analysis.ipynb <i>saved</i></span>
-                <span><b>✓</b> figure.png <i>checked</i></span>
-                <span><b>↻</b> report.md <i>linked</i></span>
-              </div>
-              <div>
-                <h3>Artifacts, not assertions</h3>
-                <p>
-                  Runnable notebooks, figures, validation records, and reports stay
-                  linked to the plan that produced them for end-to-end provenance.
-                </p>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section class="closing-cta" id="manuscript-placeholder">
-          <div class="shell reveal">
-            <div>
-              <p class="kicker">Open research software</p>
-              <h2>Build spatial workflows<br />that can explain themselves.</h2>
+          <!-- R2 External agents -->
+          <article class="result" id="external">
+            <h3 class="sub-title">Working with external agents</h3>
+            <div class="prose">
+              <p>
+                No single agent is best at everything in biomedicine, so the Agent Registry lists
+                external agents next to internal ones, each with its role, capabilities, and input and
+                output schema. Once registered, an external agent is recruited like any other. In the
+                developing human heart, TissueAgent tested whether atrial fibroblasts in the AVN/AV ring
+                follow a distinct developmental program. The Coding Agent ran differential expression,
+                GeneAgent interpreted the marker genes, and the Hypothesis Critic Agent weighed the
+                combined evidence.
+              </p>
+              <p>
+                Recruitment through TissueAgent preserved each external agent's standalone performance.
+                The Recruiter correctly selected and invoked CellVoyager in all 150 workflows.
+              </p>
             </div>
-            <a
-              class="button button-light"
-              href="https://github.com/ma-compbio/TissueAgent"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Explore on GitHub
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" /></svg>
-            </a>
-          </div>
-        </section>
-      </article>
+            <div class="chart-grid">
+              <div class="chart-card" data-chart="genegpt"></div>
+              <div class="chart-card" data-chart="cellvoyager"></div>
+            </div>
+            <figure class="paper-fig">
+              <button class="paper-fig-open" type="button" data-zoom aria-label="Enlarge Figure 4">
+                <img src="./figures/fig4_external_agents.webp" width="2200" height="1238" loading="lazy"
+                  alt="Figure 4: TissueAgent orchestrating the Coding Agent, GeneAgent, and Hypothesis Critic Agent to evaluate a claim about the developing human heart." />
+              </button>
+              <figcaption>
+                <b>Figure 4.</b> TissueAgent orchestrates multiple expert agents to evaluate a biological
+                claim from the developing human heart study. The Coding Agent performs differential
+                expression and passes the top-ranked genes to the external GeneAgent. The Hypothesis
+                Critic Agent assesses the claim using the combined evidence before the Evaluator and
+                Reporter finish the run.
+              </figcaption>
+            </figure>
+          </article>
 
-      <section class="page placeholder-page" data-route-page="biofigbench-spatial">
-        <div class="placeholder-orbit orbit-a"></div>
-        <div class="placeholder-orbit orbit-b"></div>
-        <div class="placeholder-inner reveal">
-          <p class="eyebrow"><span></span> Benchmark page</p>
-          <h1>BioFigBench<span>&ndash;Spatial</span></h1>
-          <p>Coming soon.</p>
+          <!-- R3 Annotation -->
+          <article class="result" id="annotation">
+            <h3 class="sub-title">Cell type and niche annotation</h3>
+            <div class="prose">
+              <p>
+                For cell types, TissueAgent weighs the biological context, expression state, and
+                evidence for each method, then picks one of three strategies: Harmony-based transfer from
+                a CELLxGENE reference, a pretrained CellTypist model, or marker-based annotation with
+                GPTCellType. For niches, it configures UTAG from the data, summarizes each niche's cell
+                composition and location, and assigns an anatomical label with a short justification.
+              </p>
+              <p>
+                TissueAgent had the best mean rank across three datasets (1.33, next best 2.92). On the
+                developing human heart it led on macro precision, balanced accuracy, and macro F1. Its
+                gains came from rarer cell types, which other methods tended to miss.
+              </p>
+            </div>
+            <div class="chart-card chart-wide" data-chart="celltype"></div>
+            <div class="chart-card chart-wide" data-chart="niche"></div>
+            <figure class="paper-fig">
+              <button class="paper-fig-open" type="button" data-zoom aria-label="Enlarge Figure 5">
+                <img src="./figures/fig5_annotation.webp" width="2200" height="1448" loading="lazy"
+                  alt="Figure 5: Cell type annotation UMAPs and niche maps for the developing human heart, with benchmark bar charts." />
+              </button>
+              <figcaption>
+                <b>Figure 5.</b> Cell type and niche annotation on the developing human heart. <b>a</b>,
+                UMAPs colored by ground truth and by predictions from each method. <b>b</b>, Cell-type
+                annotation performance. <b>c</b>, Spatial niche maps for three slices. <b>d</b>, Niche
+                annotation performance. Error bars show ±1 s.d.
+              </figcaption>
+            </figure>
+          </article>
+
+          <!-- R4 Deconvolution + CCC -->
+          <article class="result" id="deconvolution">
+            <h3 class="sub-title">Deconvolution and cell–cell communication</h3>
+            <div class="prose">
+              <p>
+                For deconvolution, an LLM-based router reads the dataset's structure and picks a method
+                from cell2location, NNLS, Tangram, CARD, SD2, and STdeconvolve. TissueAgent tunes it on
+                pseudospot trials before fitting the full dataset. It scored highest on Visium DLPFC and
+                tied the best method on MERFISH-derived spots, and it was the only agent to complete every
+                run.
+              </p>
+              <p>
+                For cell–cell communication, TissueAgent runs a consensus of LIANA+, stLearn, COMMOT, and
+                decoupleR rather than trusting one method. Its top-ranked interactions were the most
+                consistent with tissue architecture, identical across repeated runs, and produced on every
+                attempt. In an Alzheimer's disease cohort, it also scored each top pair for literature
+                support, and those scores tracked independent disease evidence (Spearman ρ = 0.31–0.39).
+              </p>
+            </div>
+            <div class="chart-card chart-wide" data-chart="deconv"></div>
+            <div class="chart-grid">
+              <div class="chart-card" data-chart="ccc-repro"></div>
+              <div class="chart-card" data-chart="ccc-reliab"></div>
+            </div>
+            <figure class="paper-fig">
+              <button class="paper-fig-open" type="button" data-zoom aria-label="Enlarge Figure 6">
+                <img src="./figures/fig6_deconv_ccc.webp" width="2200" height="1586" loading="lazy"
+                  alt="Figure 6: Cell-type deconvolution maps and benchmarks, and cell–cell communication analysis." />
+              </button>
+              <figcaption>
+                <b>Figure 6.</b> Deconvolution and cell–cell communication. <b>a</b>, Spatial abundance
+                maps for four major cell types and the inferred overall composition. <b>b</b>,
+                Correlation of inferred abundances with marker versus background genes. <b>c</b>,
+                Deconvolution benchmark on Visium DLPFC and MERFISH. <b>d</b>, Cell-type-specific
+                ligand–receptor interactions in MERFISH mouse hypothalamus. <b>e</b>, Spatial
+                co-localization of ligand–receptor candidates. <b>f</b>, Cell–cell communication
+                benchmark across five criteria.
+              </figcaption>
+            </figure>
+          </article>
         </div>
       </section>
     </main>
 
-    <footer class="site-footer" data-overview-footer>
-      <div class="shell">
-        <a class="brand footer-brand" href="#/overview">
-          <span class="brand-mark" aria-hidden="true">
-            <span></span><span></span><span></span><span></span>
-          </span>
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <a class="brand" href="#top">
+          <img src="./favicon.svg" alt="" width="24" height="24" />
           <span>TissueAgent</span>
         </a>
-        <p>Role-based multi-agent systems for spatial transcriptomics.</p>
-        <div>
-          <a href="#/overview" data-scroll-target="abstract">Abstract</a>
-          <a href="#/overview" data-scroll-target="method">Method</a>
-          <a href="#/overview" data-scroll-target="highlights">Highlights</a>
-          <a href="https://github.com/ma-compbio/TissueAgent" target="_blank" rel="noreferrer">GitHub ↗</a>
-        </div>
+        <p>Ma Lab, Carnegie Mellon University. Code released under the MIT License.</p>
+        <a href="https://github.com/ma-compbio-lab/TissueAgent" target="_blank" rel="noreferrer">GitHub</a>
       </div>
     </footer>
+
+    <dialog class="lightbox" data-lightbox aria-label="Enlarged figure">
+      <button class="lightbox-close" type="button" data-lightbox-close aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+      <img data-lightbox-img alt="" />
+    </dialog>
+
+    <div class="tip" role="tooltip" data-tip hidden></div>
   </body>
 </html>
