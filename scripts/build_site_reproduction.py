@@ -5,10 +5,14 @@ images). This script reuses that package's own loader, ``web_ui.reproduction.loa
 the static page shows exactly what the Flask page shows, including the merged reruns. It then writes
 
     site/assets/reproduction/data.json
+    site/assets/reproduction/metrics.csv
     site/assets/reproduction/img/<article>/<panel>/<slot>.webp      (<= FULL_EDGE px)
     site/assets/reproduction/img/<article>/<panel>/<slot>-s.webp    (<= THUMB_EDGE px)
 
 where ``<slot>`` is ``original``, ``tissueagent``, ``spatialagent`` or ``biomni``.
+
+Only panels on which all three methods were run are exported, so every method is shown on the same
+panels. Panels that only some methods attempted are listed under ``excluded`` in data.json.
 
 Usage (from the repo root):
 
@@ -77,6 +81,11 @@ def _write_images(source: Path, folder: Path, slot: str) -> tuple[int, int] | No
     return size
 
 
+def _was_run(run) -> bool:
+    """True once the method has a terminal result (anything except not started / still running)."""
+    return run.status not in ("pending", "running")
+
+
 def _round(value, digits=4):
     return None if value is None else round(float(value), digits)
 
@@ -86,7 +95,7 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
     import csv
 
     columns = [
-        "article_id", "panel_id", "figure", "paper_title", "method", "run_status", "run_seconds",
+        "article_id", "panel_id", "figure", "paper_title", "method", "run_seconds",
         "has_image", "ssim", "phash_similarity", "orb_similarity", "in_matched_set",
         "access_audit_flag", "rerun_in_separate_workflow",
     ]
@@ -99,11 +108,30 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
                     run = panel["runs"][agent]
                     writer.writerow([
                         paper["article"], panel["panel"], panel["label"], paper["title"], agent,
-                        run["status"], "" if run["seconds"] is None else run["seconds"],
+                        "" if run["seconds"] is None else run["seconds"],
                         int(run["image"]),
                         *("" if run[k] is None else run[k] for k in ("ssim", "phash", "orb")),
                         int(panel["matched"]), int(run["flagged"]), int(run["rerun"]),
                     ])
+
+
+def _prune_images(img_root: Path, papers: dict[str, dict]) -> None:
+    """Delete images from earlier builds that the current data no longer references."""
+    expected: set[Path] = set()
+    for paper in papers.values():
+        for panel in paper["panels"]:
+            folder = img_root / paper["article"] / panel["panel"]
+            slots = ["original", *(a for a in AGENTS if panel["runs"][a]["image"])]
+            for slot in slots:
+                expected |= {folder / f"{slot}.webp", folder / f"{slot}-s.webp"}
+    if not img_root.is_dir():
+        return
+    for path in img_root.rglob("*.webp"):
+        if path not in expected:
+            path.unlink()
+    for directory in sorted((p for p in img_root.rglob("*") if p.is_dir()), reverse=True):
+        if not any(directory.iterdir()):
+            directory.rmdir()
 
 
 def build(source: Path, out: Path) -> dict:
@@ -120,9 +148,20 @@ def build(source: Path, out: Path) -> dict:
     dataset = {(d["article_id"], d["panel_id"]): d for d in metrics["dataset"]}
 
     papers: dict[str, dict] = {}
-    bytes_written = 0
+    excluded: list[dict] = []
     for record in snapshot.records:
         key = f"{record.article_id}::{record.panel_id}"
+        if not all(_was_run(record.agent_run(agent)) for agent in AGENTS):
+            excluded.append(
+                {
+                    "article": record.article_id,
+                    "title": record.paper_title,
+                    "panel": record.panel_id,
+                    "label": record.published_id,
+                    "ran": [a for a in AGENTS if _was_run(record.agent_run(a))],
+                }
+            )
+            continue
         folder = out / "img" / record.article_id / record.panel_id
         meta = dataset.get((record.article_id, record.panel_id), {})
 
@@ -133,7 +172,6 @@ def build(source: Path, out: Path) -> dict:
             score = rows.get(f"{key}::{agent}", {})
             size = _write_images(run.image_path, folder, agent) if run.image_path else None
             runs[agent] = {
-                "status": run.status,
                 "seconds": _round(run.elapsed_seconds, 1),
                 "image": size is not None,
                 "ssim": _round(score.get("ssim")),
@@ -167,12 +205,21 @@ def build(source: Path, out: Path) -> dict:
             }
         )
 
+    _prune_images(out / "img", papers)
     bytes_written = sum(p.stat().st_size for p in (out / "img").rglob("*.webp"))
+    panels = [panel for paper in papers.values() for panel in paper["panels"]]
+    matched_count = sum(panel["matched"] for panel in panels)
+    if matched_count != metrics["paired_n"]:
+        print(
+            f"note: matched set has {matched_count} panels here but metrics.json lists "
+            f"{metrics['paired_n']}; using the {matched_count} shown",
+            file=sys.stderr,
+        )
     data = {
         "generatedAt": metrics["generated_at"],
         "source": snapshot.source_label,
-        "coverage": metrics["summary"],
-        "matchedCount": metrics["paired_n"],
+        "matchedCount": matched_count,
+        "excluded": excluded,
         "papers": list(papers.values()),
     }
     out.mkdir(parents=True, exist_ok=True)
@@ -180,11 +227,10 @@ def build(source: Path, out: Path) -> dict:
         json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
     )
     _write_metrics_csv(data, out / "metrics.csv")
-    panel_count = sum(len(p["panels"]) for p in papers.values())
     print(
-        f"{panel_count} panels from {len(papers)} papers, {data['matchedCount']} matched; "
-        f"{bytes_written / 1e6:.1f} MB of images, data.json "
-        f"{(out / 'data.json').stat().st_size / 1e3:.0f} kB"
+        f"{len(panels)} panels from {len(papers)} papers, {matched_count} matched, "
+        f"{len(excluded)} left out (not run by every method); {bytes_written / 1e6:.1f} MB of images, "
+        f"data.json {(out / 'data.json').stat().st_size / 1e3:.0f} kB"
     )
     return data
 

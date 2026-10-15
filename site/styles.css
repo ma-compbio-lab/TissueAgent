@@ -717,13 +717,8 @@ button, input, select { font: inherit; }
 }
 .rp-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .rp-cell { margin: 0; min-width: 0; }
-.rp-cell-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin-bottom: 6px; font-size: 0.84rem; color: var(--ink); }
+.rp-cell-head { margin-bottom: 6px; font-size: 0.84rem; line-height: 1.4; color: var(--ink); }
 .rp-cell-head strong { font-weight: 600; }
-.rp-pill { padding: 0 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; line-height: 1.7; white-space: nowrap; }
-.rp-pill-ok { color: var(--green); background: var(--green-soft); }
-.rp-pill-bad { color: var(--red); background: var(--red-soft); }
-.rp-pill-warn { color: var(--amber); background: var(--amber-soft); }
-.rp-pill-idle { color: var(--ink-3); background: var(--bg-alt); }
 .rp-thumb {
   display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0;
   background: #fff; border: 1px solid var(--border); border-radius: var(--r-md);
@@ -792,8 +787,6 @@ button.rp-thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 
 
 @media (max-width: 900px) {
   .rp-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
-  /* Two-column cells: name above status in every cell, so the thumbnails line up */
-  .rp-row .rp-cell-head { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 3px; min-height: 48px; }
   .rp-dialog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {

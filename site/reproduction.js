@@ -15,15 +15,6 @@
     { key: "phash", label: "pHash" },
     { key: "orb", label: "ORB" },
   ];
-  const STATUS = {
-    success: ["Completed", "ok"],
-    failure: ["Failed", "bad"],
-    timeout: ["Timed out", "warn"],
-    harness_error: ["Harness error", "bad"],
-    pending: ["Not run", "idle"],
-    running: ["Running", "idle"],
-    unknown: ["Unknown", "idle"],
-  };
   const SVG_NS = "http://www.w3.org/2000/svg";
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -197,7 +188,7 @@
     const others = (metric) =>
       AGENTS.slice(1).map((a) => `${a.name} ${fmt(med(metric, a.key))}`).join(" · ");
     const cards = [
-      ["#gallery", String(ctx.panels.length), "Panels with a result", plural(ctx.data.papers.length, "paper")],
+      ["#gallery", String(ctx.panels.length), "Panels compared", `From ${plural(ctx.data.papers.length, "paper")}`],
       ["#gallery", String(ctx.data.matchedCount), "Matched panels", "Images from all three methods"],
       ["#similarity", fmt(med("ssim", "tissueagent")), "Median SSIM, TissueAgent", others("ssim")],
       ["#similarity", fmt(med("phash", "tissueagent")), "Median pHash, TissueAgent", others("phash")],
@@ -214,11 +205,19 @@
     const reruns = ctx.panels.filter((p) => p.runs.tissueagent.rerun);
     const rerunPapers = [...new Set(reruns.map((p) => p.paper.title))];
     const parts = [
-      `This page lists the ${ctx.panels.length} panels from ${plural(ctx.data.papers.length, "paper")} that have ` +
-        "at least one completed attempt in the current snapshot. The automated runs used GPT-5.5 with high " +
-        "reasoning effort and a two-hour limit per panel, and when a panel was retried the latest attempt is shown. " +
-        "Panels whose required data could not be obtained were skipped and are not listed.",
+      `This page lists the ${ctx.panels.length} panels from ${plural(ctx.data.papers.length, "paper")} on which ` +
+        "TissueAgent, SpatialAgent, and Biomni were all run in the current snapshot. The automated runs used GPT-5.5 " +
+        "with high reasoning effort and a two-hour limit per panel, and when a panel was retried the latest attempt is " +
+        "shown. Panels whose required data could not be obtained were skipped and are not listed.",
     ];
+    const left = ctx.data.excluded || [];
+    if (left.length) {
+      const titles = [...new Set(left.map((e) => e.title))];
+      parts.push(
+        ` ${plural(left.length, "panel")} from “${titles.join("”, “")}” were run with only some of the methods, so ` +
+          "they are left out to keep every method on the same panels."
+      );
+    }
     if (reruns.length) {
       parts.push(
         ` The ${plural(reruns.length, "TissueAgent result")} for “${rerunPapers.join("”, “")}”, marked †, ` +
@@ -256,49 +255,30 @@
     const head = el("thead");
     const hr = el("tr");
     hr.append(el("th", "setting", "Method"));
-    ["Attempts", "Completed", "Failed or timed out", "Images produced", "Median run time"].forEach((h) =>
-      hr.append(el("th", null, h))
-    );
+    ["Panels", "Images produced", "Median SSIM", "Median pHash", "Median ORB"].forEach((h) => hr.append(el("th", null, h)));
     head.append(hr);
     const body = el("tbody");
     AGENTS.forEach((a) => {
-      const runs = ctx.panels.map((p) => p.runs[a.key]);
-      const count = (...statuses) => runs.filter((r) => statuses.includes(r.status)).length;
-      const times = runs.map((r) => r.seconds).filter((s) => s != null);
-      const coverage = ctx.data.coverage[a.key] || {};
       const tr = el("tr", a.key === "tissueagent" ? "row-ours" : "row-base");
       tr.append(el("td", "setting", a.name));
       [
-        coverage.terminal ?? count("success", "failure", "timeout", "harness_error"),
-        count("success"),
-        count("failure", "timeout", "harness_error"),
-        coverage.images ?? runs.filter((r) => r.image).length,
-        fmtTime(times.length ? median(times) : null),
-      ].forEach((v) => tr.append(el("td", null, String(v))));
+        String(ctx.panels.length),
+        String(ctx.panels.filter((p) => p.runs[a.key].image).length),
+        ...METRICS.map((m) => fmt(median(ctx.matchedValues(m.key, a.key)))),
+      ].forEach((v) => tr.append(el("td", null, v)));
       body.append(tr);
     });
     table.append(head, body);
 
-    const notRun = AGENTS.map((a) => [a.name, ctx.panels.filter((p) => p.runs[a.key].status === "pending").length]).filter(
-      ([, n]) => n
-    );
     const flagged = ctx.panels.filter((p) => AGENTS.some((a) => p.runs[a.key].flagged)).length;
-    const bits = [`The snapshot has ${ctx.panels.length} panels.`];
-    if (notRun.length) bits.push(`${notRun.map(([name, n]) => `${name} has ${plural(n, "panel")}`).join(" and ")} with no completed attempt.`);
-    bits.push(
-      `${ctx.data.matchedCount} panels have an image from every method (the matched set)` +
-        (flagged ? `; ${plural(flagged, "panel")} with an automatic access-audit flag ${flagged === 1 ? "is" : "are"} left out of it` : "") +
-        ". Median run times include failed and timed-out attempts."
-    );
-    noteEl.textContent = bits.join(" ");
+    noteEl.textContent =
+      `Every method was run on all ${ctx.panels.length} panels. Medians are taken over the ${ctx.data.matchedCount} ` +
+      "matched panels, which have an image from every method" +
+      (flagged ? `; ${plural(flagged, "panel")} with an automatic access-audit flag ${flagged === 1 ? "is" : "are"} left out of that set` : "") +
+      ".";
   }
 
   /* ---- gallery ---- */
-
-  function statusPill(status) {
-    const [label, tone] = STATUS[status] || STATUS.unknown;
-    return el("span", `rp-pill rp-pill-${tone}`, label);
-  }
 
   function bestFlags(panel, metric) {
     const values = AGENTS.map((a) => panel.runs[a.key][metric]);
@@ -310,10 +290,6 @@
 
   function imageUrl(panel, slot, thumb) {
     return `${IMG_ROOT}${panel.paper.article}/${panel.panel}/${slot}${thumb ? "-s" : ""}.webp`;
-  }
-
-  function emptyMessage(run) {
-    return run.status === "pending" ? "Not run" : "No image produced";
   }
 
   function scoreRow(panel, agentKey, best) {
@@ -359,7 +335,7 @@
       const run = panel.runs[agent.key];
       const cell = el("figure", `rp-cell rp-c-${agent.key}`);
       const cap = el("figcaption", "rp-cell-head");
-      cap.append(el("strong", null, run.rerun ? `${agent.name} †` : agent.name), statusPill(run.status));
+      cap.append(el("strong", null, run.rerun ? `${agent.name} †` : agent.name));
       cell.append(cap);
       if (run.image) {
         const btn = el("button", "rp-thumb");
@@ -375,7 +351,7 @@
         btn.append(img);
         cell.append(btn);
       } else {
-        cell.append(el("div", "rp-thumb is-empty", emptyMessage(run)));
+        cell.append(el("div", "rp-thumb is-empty", "No image"));
       }
       cell.append(el("p", "rp-meta", run.seconds != null ? `Run time ${fmtTime(run.seconds)}` : "No run time"));
       cell.append(scoreRow(panel, agent.key, best));
@@ -465,11 +441,10 @@
         if (ratios.length) grid.style.setProperty("--frame-ar", String(Math.min(2.2, Math.max(0.7, Math.min(...ratios)))));
       };
 
-      const mk = (title, status, imageSrc, emptyText, footer, cls) => {
+      const mk = (title, imageSrc, emptyText, footer, cls) => {
         const cell = el("figure", `rp-dcell ${cls || ""}`);
         const cap = el("figcaption", "rp-cell-head");
         cap.append(el("strong", null, title));
-        if (status) cap.append(statusPill(status));
         cell.append(cap);
         if (imageSrc) {
           const frame = el("div", "rp-dframe");
@@ -487,7 +462,7 @@
         return cell;
       };
 
-      grid.append(mk("Original", null, imageUrl(panel, "original", false), "", el("p", "rp-meta", "Published figure")));
+      grid.append(mk("Original", imageUrl(panel, "original", false), "", el("p", "rp-meta", "Published figure")));
       AGENTS.forEach((agent, i) => {
         const run = panel.runs[agent.key];
         const footer = el("div");
@@ -498,9 +473,8 @@
         grid.append(
           mk(
             run.rerun ? `${agent.name} †` : agent.name,
-            run.status,
             run.image ? imageUrl(panel, agent.key, false) : "",
-            emptyMessage(run),
+            "No image",
             footer,
             `rp-c-${agent.key}`
           )
