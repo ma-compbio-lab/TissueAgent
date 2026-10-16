@@ -232,6 +232,136 @@
       `${ctx.data.matchedCount} matched panels.`;
   }
 
+  /* ---- benchmark statistics ---- */
+
+  const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const LABEL_OVERRIDES = {
+    "legacy Spatial Transcriptomics": "Spatial Transcriptomics (legacy)",
+    "No auxiliary modality identified": "None identified",
+  };
+  const LAST = new Set(["Other / unspecified", "None identified"]);
+
+  // Plain words that open a label get a capital; names such as seqFISH or scRNA-seq keep their spelling.
+  const CAPITALISE = new Set(["histology", "genotype", "bulk", "microscopy", "immunofluorescence"]);
+
+  function prettyLabel(label) {
+    if (LABEL_OVERRIDES[label]) return LABEL_OVERRIDES[label];
+    const spaced = label.replace(/\s*\/\s*/g, " / ");
+    const first = spaced.split(/[\s/]/)[0];
+    return CAPITALISE.has(first) ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : spaced;
+  }
+
+  /** Count labels; each item is one label or a list of labels. */
+  function tally(items) {
+    const counts = new Map();
+    items.forEach((item) =>
+      (Array.isArray(item) ? item : [item]).forEach((key) => {
+        if (key) counts.set(key, (counts.get(key) || 0) + 1);
+      })
+    );
+    return [...counts].map(([label, count]) => ({ label: prettyLabel(label), count }));
+  }
+
+  const byCount = (a, b) =>
+    LAST.has(a.label) - LAST.has(b.label) || b.count - a.count || a.label.localeCompare(b.label);
+
+  const drawObserver =
+    !REDUCED_MOTION && "IntersectionObserver" in window
+      ? new IntersectionObserver(
+          (entries) =>
+            entries.forEach((e) => {
+              if (!e.isIntersecting) return;
+              e.target.classList.add("is-drawn");
+              drawObserver.unobserve(e.target);
+            }),
+          { threshold: 0.25 }
+        )
+      : null;
+
+  function statCard(host, title, note, rows, total) {
+    const card = el("div", "rp-card rp-stat");
+    card.append(el("h5", null, title));
+    if (note) card.append(el("p", "rp-stat-note", note));
+    const max = Math.max(...rows.map((r) => r.count));
+    const list = el("ul", "rp-bars");
+    rows.forEach((row) => {
+      const item = el("li");
+      const head = el("div", "rp-bar-head");
+      const value = el("span", "rp-bar-val");
+      value.append(el("b", null, String(row.count)), document.createTextNode(` · ${((row.count * 100) / total).toFixed(1)}%`));
+      head.append(el("span", "rp-bar-label", row.label), value);
+      const track = el("div", "rp-bar-track");
+      const fill = el("i");
+      fill.style.setProperty("--w", `${((row.count / max) * 100).toFixed(1)}%`);
+      track.append(fill);
+      item.append(head, track);
+      list.append(item);
+    });
+    card.append(list);
+    host.append(card);
+    if (drawObserver) drawObserver.observe(card);
+    else card.classList.add("is-drawn");
+  }
+
+  function renderStats(host, leadEl, papersTable, ctx) {
+    const total = ctx.panels.length;
+    const papers = ctx.data.papers;
+    const journals = new Set(papers.map((p) => p.journal));
+    const years = papers.map((p) => Number(p.year)).filter(Number.isFinite);
+    const span = years.length ? `${Math.min(...years)}–${Math.max(...years)}` : "";
+    leadEl.textContent =
+      `The ${total} panels come from ${plural(papers.length, "paper")} in ${plural(journals.size, "journal")}` +
+      (span ? `, published ${span}` : "") +
+      ". Each panel has one task type. Spatial technology, auxiliary data, and raw-data source can have several " +
+      "labels per panel, so their percentages can add up to more than 100%. Technology and auxiliary-data labels " +
+      "come from a rule-based reading of each panel's data records and text.";
+
+    const kind = (p) => (/^Extended/i.test(p.label) ? "Extended Data figure" : /^Supp/i.test(p.label) ? "Supplementary figure" : "Main figure");
+    const KIND_ORDER = ["Main figure", "Extended Data figure", "Supplementary figure"];
+    const chrono = (a, b) => a.label.localeCompare(b.label);
+    const panelPaper = (p) => p.paper;
+
+    statCard(host, "Task type", "One label per panel", tally(ctx.panels.map((p) => p.figureType)).sort(byCount), total);
+    statCard(host, "Spatial technology", "Several labels possible", tally(ctx.panels.map((p) => p.technologies)).sort(byCount), total);
+    statCard(host, "Auxiliary data", "Other data a panel draws on. Several labels possible", tally(ctx.panels.map((p) => p.modalities)).sort(byCount), total);
+    statCard(host, "Raw-data source", "Where the raw data are hosted. Several possible", tally(ctx.panels.map((p) => p.dataSources)).sort(byCount), total);
+    statCard(host, "Journal", "", tally(ctx.panels.map((p) => panelPaper(p).journal)).sort(byCount), total);
+    statCard(host, "Publication year", "", tally(ctx.panels.map((p) => panelPaper(p).year)).sort(chrono), total);
+    statCard(
+      host,
+      "Figure type",
+      "",
+      tally(ctx.panels.map(kind)).sort((a, b) => KIND_ORDER.indexOf(a.label) - KIND_ORDER.indexOf(b.label)),
+      total
+    );
+
+    // Source papers, most panels first.
+    const head = el("thead");
+    const hr = el("tr");
+    ["Paper", "Journal", "Year", "Panels"].forEach((h) => hr.append(el("th", h === "Paper" || h === "Journal" ? "setting" : null, h)));
+    head.append(hr);
+    const body = el("tbody");
+    [...papers]
+      .sort((a, b) => b.panels.length - a.panels.length || a.title.localeCompare(b.title))
+      .forEach((paper) => {
+        const tr = el("tr", "row-base");
+        const title = el("td", "text-left");
+        const url = doiUrl(paper.doi);
+        if (url) {
+          const a = el("a", null, paper.title);
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener";
+          title.append(a);
+        } else {
+          title.textContent = paper.title;
+        }
+        tr.append(title, el("td", "text-left", paper.journal), el("td", null, paper.year), el("td", null, String(paper.panels.length)));
+        body.append(tr);
+      });
+    papersTable.append(head, body);
+  }
+
   /* ---- method text: the small Markdown subset it uses, built with DOM nodes ---- */
 
   function appendInline(parent, text) {
@@ -662,6 +792,7 @@
     };
 
     renderScope($("[data-rp-scope]"), ctx);
+    renderStats($("[data-rp-stats]"), $("[data-rp-stats-lead]"), $("[data-rp-papers]"), ctx);
     renderLegend($("[data-rp-legend]"));
     renderPlots($("[data-rp-plots]"), $("[data-rp-plot-note]"), ctx);
     renderCoverage($("[data-rp-coverage]"), $("[data-rp-coverage-note]"), ctx);

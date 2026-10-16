@@ -80,6 +80,38 @@ def _write_images(source: Path, folder: Path, slot: str) -> tuple[int, int] | No
     return size
 
 
+_SOURCE_NAMES = {
+    "zenodo.org": "Zenodo",
+    "media.springernature.com": "Publisher supplementary files",
+    "cf.10xgenomics.com": "10x Genomics",
+    "ftp.ncbi.nlm.nih.gov": "NCBI GEO",
+    "raw.githubusercontent.com": "GitHub",
+    "media.githubusercontent.com": "GitHub",
+    "download.brainimagelibrary.org": "Brain Image Library",
+    "datadryad.org": "Dryad",
+    "api.brain-map.org": "Allen Institute",
+    "download.alleninstitute.org": "Allen Institute",
+    "ftp.cngb.org": "CNGB",
+    "content.cruk.cam.ac.uk": "CRUK Cambridge Institute",
+}
+
+
+def _data_sources(urls) -> list[str]:
+    """Distinct, readable hosting names for a panel's raw-data URLs."""
+    from urllib.parse import urlparse
+
+    names: list[str] = []
+    for url in urls or ():
+        host = urlparse(url).netloc.lower().removeprefix("www.")
+        if host.endswith("amazonaws.com"):
+            name = "Amazon S3"
+        else:
+            name = _SOURCE_NAMES.get(host) or host
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
 def _was_run(run) -> bool:
     """True once the method has a terminal result (anything except not started / still running)."""
     return run.status not in ("pending", "running")
@@ -194,6 +226,8 @@ def build(source: Path, out: Path) -> dict:
                 "methods": (record.methods or "").strip(),
                 "figureType": meta.get("figure_type", ""),
                 "technologies": meta.get("technologies", []),
+                "modalities": meta.get("modalities", []),
+                "dataSources": _data_sources(record.raw_data_urls),
                 "matched": key in matched,
                 "originalSize": list(original_size) if original_size else None,
                 "runs": runs,
