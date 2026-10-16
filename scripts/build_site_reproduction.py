@@ -12,7 +12,7 @@ the static page shows exactly what the Flask page shows, including the merged re
 where ``<slot>`` is ``original``, ``tissueagent``, ``spatialagent`` or ``biomni``.
 
 Only panels on which all three methods were run are exported, so every method is shown on the same
-panels. Panels that only some methods attempted are listed under ``excluded`` in data.json.
+panels. Panels that only some methods attempted are skipped (the count is printed).
 
 Usage (from the repo root):
 
@@ -95,7 +95,7 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
     import csv
 
     columns = [
-        "article_id", "panel_id", "figure", "paper_title", "method", "run_seconds",
+        "article_id", "panel_id", "figure", "paper_title", "method",
         "has_image", "ssim", "phash_similarity", "orb_similarity", "in_matched_set",
         "access_audit_flag", "rerun_in_separate_workflow",
     ]
@@ -108,7 +108,6 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
                     run = panel["runs"][agent]
                     writer.writerow([
                         paper["article"], panel["panel"], panel["label"], paper["title"], agent,
-                        "" if run["seconds"] is None else run["seconds"],
                         int(run["image"]),
                         *("" if run[k] is None else run[k] for k in ("ssim", "phash", "orb")),
                         int(panel["matched"]), int(run["flagged"]), int(run["rerun"]),
@@ -172,7 +171,6 @@ def build(source: Path, out: Path) -> dict:
             score = rows.get(f"{key}::{agent}", {})
             size = _write_images(run.image_path, folder, agent) if run.image_path else None
             runs[agent] = {
-                "seconds": _round(run.elapsed_seconds, 1),
                 "image": size is not None,
                 "ssim": _round(score.get("ssim")),
                 "phash": _round(score.get("phash_similarity")),
@@ -219,7 +217,6 @@ def build(source: Path, out: Path) -> dict:
         "generatedAt": metrics["generated_at"],
         "source": snapshot.source_label,
         "matchedCount": matched_count,
-        "excluded": excluded,
         "papers": list(papers.values()),
     }
     out.mkdir(parents=True, exist_ok=True)

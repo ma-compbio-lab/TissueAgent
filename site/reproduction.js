@@ -36,14 +36,6 @@
   const fmt = (v, digits = 3) => (v == null ? "—" : v.toFixed(digits));
   const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-  function fmtTime(seconds) {
-    if (seconds == null) return "—";
-    if (seconds < 60) return `${Math.round(seconds)} s`;
-    const minutes = Math.round(seconds / 60);
-    if (minutes < 60) return `${minutes} min`;
-    return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`;
-  }
-
   function fmtDate(iso) {
     const d = new Date(iso);
     return Number.isNaN(d.getTime())
@@ -210,14 +202,6 @@
         "with high reasoning effort and a two-hour limit per panel, and when a panel was retried the latest attempt is " +
         "shown. Panels whose required data could not be obtained were skipped and are not listed.",
     ];
-    const left = ctx.data.excluded || [];
-    if (left.length) {
-      const titles = [...new Set(left.map((e) => e.title))];
-      parts.push(
-        ` ${plural(left.length, "panel")} from “${titles.join("”, “")}” were run with only some of the methods, so ` +
-          "they are left out to keep every method on the same panels."
-      );
-    }
     if (reruns.length) {
       parts.push(
         ` The ${plural(reruns.length, "TissueAgent result")} for “${rerunPapers.join("”, “")}”, marked †, ` +
@@ -353,7 +337,6 @@
       } else {
         cell.append(el("div", "rp-thumb is-empty", "No image"));
       }
-      cell.append(el("p", "rp-meta", run.seconds != null ? `Run time ${fmtTime(run.seconds)}` : "No run time"));
       cell.append(scoreRow(panel, agent.key, best));
       row.append(cell);
     });
@@ -465,11 +448,7 @@
       grid.append(mk("Original", imageUrl(panel, "original", false), "", el("p", "rp-meta", "Published figure")));
       AGENTS.forEach((agent, i) => {
         const run = panel.runs[agent.key];
-        const footer = el("div");
-        footer.append(
-          el("p", "rp-meta", run.seconds != null ? `Run time ${fmtTime(run.seconds)}` : "No run time"),
-          scoreRow(panel, agent.key, best)
-        );
+        const footer = scoreRow(panel, agent.key, best);
         grid.append(
           mk(
             run.rerun ? `${agent.name} †` : agent.name,

@@ -733,7 +733,7 @@ button.rp-thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 
   font-size: 0.8rem; color: var(--ink-4); background: var(--surface-hi); border-style: dashed;
 }
 .rp-meta { margin-top: 6px; font-size: 0.76rem; color: var(--ink-3); }
-.rp-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 4px; }
+.rp-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; }
 .rp-scores span { display: flex; flex-direction: column; line-height: 1.3; }
 .rp-scores i { font-style: normal; font-size: 0.68rem; color: var(--ink-4); }
 .rp-scores b { font-size: 0.82rem; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
