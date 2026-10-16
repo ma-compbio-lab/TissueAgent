@@ -191,6 +191,7 @@ def build(source: Path, out: Path) -> dict:
                 "panel": record.panel_id,
                 "label": record.published_id,
                 "caption": record.caption,
+                "methods": (record.methods or "").strip(),
                 "figureType": meta.get("figure_type", ""),
                 "technologies": meta.get("technologies", []),
                 "matched": key in matched,

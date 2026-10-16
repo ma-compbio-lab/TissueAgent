@@ -250,6 +250,129 @@
       `${ctx.data.matchedCount} matched panels.`;
   }
 
+  /* ---- method text: the small Markdown subset it uses, built with DOM nodes ---- */
+
+  function appendInline(parent, text) {
+    text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).forEach((part) => {
+      if (!part) return;
+      if (part.length > 4 && part.startsWith("**") && part.endsWith("**")) parent.append(el("strong", null, part.slice(2, -2)));
+      else if (part.length > 2 && part.startsWith("`") && part.endsWith("`")) parent.append(el("code", null, part.slice(1, -1)));
+      else parent.append(document.createTextNode(part));
+    });
+  }
+
+  function renderMarkdown(source) {
+    const root = el("div", "rp-md");
+    let lines = [];
+    let list = null;
+
+    const flushText = () => {
+      if (!lines.length) return;
+      const text = lines.join(" ").replace(/\s+/g, " ").trim();
+      lines = [];
+      const src = text.match(/^(?:\*\*)?Source(?::\*\*|\*\*:|:)\s*(.*)$/s);
+      if (src) {
+        const p = el("p", "rp-source");
+        p.append(el("span", null, "Source"), document.createTextNode(" "));
+        appendInline(p, src[1]);
+        root.append(p);
+      } else {
+        const p = el("p");
+        appendInline(p, text);
+        root.append(p);
+      }
+    };
+    const flushAll = () => {
+      flushText();
+      list = null;
+    };
+
+    source.split(/\r?\n/).forEach((raw) => {
+      const line = raw.trim();
+      let m;
+      if (!line) return flushAll();
+      if ((m = line.match(/^#{1,6}\s+(.*)$/))) {
+        flushAll();
+        const h = el("h5", "rp-md-h");
+        appendInline(h, m[1]);
+        root.append(h);
+      } else if ((m = line.match(/^([-*]|\d+[.)])\s+(.*)$/))) {
+        flushText();
+        const type = /\d/.test(m[1]) ? "ol" : "ul";
+        if (!list || list.type !== type) {
+          list = { type, node: el(type) };
+          root.append(list.node);
+        }
+        const li = el("li");
+        appendInline(li, m[2]);
+        list.node.append(li);
+      } else {
+        if (list) list = null;
+        lines.push(line);
+      }
+    });
+    flushAll();
+    return root;
+  }
+
+  /* Long text is clamped to a few lines with a fade; "Show more" reveals the rest. */
+  const clampLinks = new WeakMap();
+
+  function measureClamp(body) {
+    const toggle = clampLinks.get(body);
+    if (!toggle) return;
+    if (body.classList.contains("is-open")) return;
+    const clipped = body.scrollHeight > body.clientHeight + 2;
+    body.classList.toggle("is-clipped", clipped);
+    toggle.hidden = !clipped;
+  }
+
+  const clampObserver =
+    "ResizeObserver" in window
+      ? new ResizeObserver((entries) => entries.forEach((e) => measureClamp(e.target)))
+      : null;
+
+  function textBlock(title, hint, content) {
+    const col = el("section", "rp-text-col");
+    const head = el("h5", null, title);
+    if (hint) head.append(el("span", null, hint));
+    const body = el("div", "rp-clamp");
+    body.append(content);
+    const toggle = el("button", "rp-more", "Show more");
+    toggle.type = "button";
+    toggle.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+    clampLinks.set(body, toggle);
+
+    toggle.addEventListener("click", () => {
+      const opening = !body.classList.contains("is-open");
+      toggle.setAttribute("aria-expanded", String(opening));
+      toggle.textContent = opening ? "Show less" : "Show more";
+      if (opening) {
+        body.classList.add("is-open");
+        body.style.maxHeight = `${body.scrollHeight}px`;
+        body.addEventListener(
+          "transitionend",
+          () => {
+            if (body.classList.contains("is-open")) body.style.maxHeight = "none";
+          },
+          { once: true }
+        );
+      } else {
+        body.style.maxHeight = `${body.scrollHeight}px`;
+        requestAnimationFrame(() => {
+          body.classList.remove("is-open");
+          body.style.maxHeight = "";
+        });
+      }
+    });
+
+    col.append(head, body, toggle);
+    if (clampObserver) clampObserver.observe(body);
+    else requestAnimationFrame(() => measureClamp(body));
+    return col;
+  }
+
   /* ---- gallery ---- */
 
   function bestFlags(panel, metric) {
@@ -330,11 +453,14 @@
     });
     card.append(row);
 
+    const band = el("div", "rp-text");
     if (panel.caption) {
-      const details = el("details", "rp-caption");
-      details.append(el("summary", null, "Figure caption"), el("p", null, panel.caption));
-      card.append(details);
+      const caption = el("p");
+      caption.textContent = panel.caption;
+      band.append(textBlock("Figure caption", "", caption));
     }
+    if (panel.methods) band.append(textBlock("Method description", "Supplied with the task", renderMarkdown(panel.methods)));
+    if (band.children.length) card.append(band);
     return card;
   }
 
@@ -539,7 +665,7 @@
       paper.panels.forEach((p) => {
         p.paper = paper;
         p.key = `${paper.article}/${p.panel}`;
-        p.search = [paper.title, paper.journal, paper.year, p.label, p.figureType, ...(p.technologies || []), paper.article]
+        p.search = [paper.title, paper.journal, paper.year, p.label, p.figureType, ...(p.technologies || []), paper.article, p.methods]
           .join(" ")
           .toLowerCase();
         panels.push(p);
