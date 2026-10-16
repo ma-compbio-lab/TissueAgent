@@ -53,7 +53,6 @@
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
   }
 
-  const median = (values) => quantile([...values].sort((a, b) => a - b), 0.5);
   const mean = (values) => values.reduce((s, v) => s + v, 0) / values.length;
 
   function boxStats(values) {
@@ -104,8 +103,8 @@
 
   function boxPlot(metric, stats) {
     const W = 320;
-    const H = 292;
-    const m = { l: 40, r: 8, t: 10, b: 56 };
+    const H = 270;
+    const m = { l: 40, r: 8, t: 10, b: 34 };
     const innerW = W - m.l - m.r;
     const innerH = H - m.t - m.b;
     const top = niceCeil(
@@ -134,7 +133,7 @@
       const cx = m.l + slot * (i + 0.5);
       const bw = 38;
       const g = svg("g", { class: `rp-box rp-c-${agent.key}`, tabindex: 0, role: "img" });
-      g.setAttribute("aria-label", `${agent.name}, ${metric.label}: median ${fmt(s.med)}, n = ${s.n}`);
+      g.setAttribute("aria-label", `${agent.name}, ${metric.label}: median ${fmt(s.med)}`);
 
       g.append(
         svg("line", { x1: cx, x2: cx, y1: y(s.hi), y2: y(s.q3), class: "rp-whisker" }),
@@ -153,17 +152,14 @@
       g.append(svg("rect", { x: cx - slot / 2, y: m.t, width: slot, height: innerH, class: "rp-hit" }));
       root.append(g);
 
-      root.append(
-        svg("text", { x: cx, y: H - 30, class: "rp-xlabel", "text-anchor": "middle" }, agent.name),
-        svg("text", { x: cx, y: H - 14, class: "rp-xn", "text-anchor": "middle" }, `n = ${s.n}`)
-      );
+      root.append(svg("text", { x: cx, y: H - 12, class: "rp-xlabel", "text-anchor": "middle" }, agent.name));
 
       const show = () =>
         showTip(g, `${agent.name} · ${metric.label}`, [
           `Median ${fmt(s.med)} · Mean ${fmt(s.mean)}`,
           `Q1–Q3 ${fmt(s.q1)}–${fmt(s.q3)}`,
           `Whiskers ${fmt(s.lo)}–${fmt(s.hi)}`,
-          `${plural(s.outliers.length, "outlier")} · n = ${s.n}`,
+          plural(s.outliers.length, "outlier"),
         ]);
       g.addEventListener("pointerenter", show);
       g.addEventListener("focus", show);
@@ -204,32 +200,8 @@
     });
     noteEl.textContent =
       "Boxes show the quartiles, the line is the median, triangles are means, whiskers reach the furthest points " +
-      "within 1.5 × IQR, and circles are outliers. Every method is scored on the same matched panels; ORB " +
-      "additionally needs detected image features, so its n can be smaller.";
-  }
-
-  function renderCoverage(table, noteEl, ctx) {
-    const head = el("thead");
-    const hr = el("tr");
-    hr.append(el("th", "setting", "Method"));
-    ["Panels", "Images produced", "Median SSIM", "Median pHash", "Median ORB"].forEach((h) => hr.append(el("th", null, h)));
-    head.append(hr);
-    const body = el("tbody");
-    AGENTS.forEach((a) => {
-      const tr = el("tr", a.key === "tissueagent" ? "row-ours" : "row-base");
-      tr.append(el("td", "setting", a.name));
-      [
-        String(ctx.panels.length),
-        String(ctx.panels.filter((p) => p.runs[a.key].image).length),
-        ...METRICS.map((m) => fmt(median(ctx.matchedValues(m.key, a.key)))),
-      ].forEach((v) => tr.append(el("td", null, v)));
-      body.append(tr);
-    });
-    table.append(head, body);
-
-    noteEl.textContent =
-      `Every method was run on all ${ctx.panels.length} panels. Medians are taken over the ` +
-      `${ctx.data.matchedCount} matched panels.`;
+      "within 1.5 × IQR, and circles are outliers. Every method is scored on the same matched panels, and ORB " +
+      "additionally needs detected image features.";
   }
 
   /* ---- benchmark statistics ---- */
@@ -795,7 +767,6 @@
     renderStats($("[data-rp-stats]"), $("[data-rp-stats-lead]"), $("[data-rp-papers]"), ctx);
     renderLegend($("[data-rp-legend]"));
     renderPlots($("[data-rp-plots]"), $("[data-rp-plot-note]"), ctx);
-    renderCoverage($("[data-rp-coverage]"), $("[data-rp-coverage-note]"), ctx);
     const groups = buildGallery($("[data-rp-gallery]"), ctx);
     initSearch(ctx, groups, initDialog(ctx));
     initSpy();
