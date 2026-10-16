@@ -255,6 +255,10 @@ def build(source: Path, out: Path) -> dict:
         json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
     )
     _write_metrics_csv(data, out / "metrics.csv")
+    if out.resolve().is_relative_to((Path(__file__).resolve().parent.parent / "site")):
+        from stamp_site_version import stamp
+
+        stamp()
     print(
         f"{len(panels)} panels from {len(papers)} papers, {matched_count} matched, "
         f"{len(excluded)} left out (not run by every method); {bytes_written / 1e6:.1f} MB of images, "
