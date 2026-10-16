@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TissueAgent — Figure Reproduction on BioFigBench-Spatial</title>
+    <meta name="description"
+      content="Side-by-side results for reproducing published spatial transcriptomics figure panels from data, reference images, and text, comparing TissueAgent, SpatialAgent, and Biomni.">
+    <meta property="og:title" content="TissueAgent — Figure Reproduction on BioFigBench-Spatial">
+    <meta property="og:description"
+      content="Every reproduced panel next to its published original, with SSIM, pHash, and ORB similarity for TissueAgent, SpatialAgent, and Biomni.">
+    <meta property="og:image" content="assets/paper/reproduce-apply.webp">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" href="assets/icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="reproduction.js" defer></script>
+  </head>
+  <body class="rp-page">
+
+    <!-- TOPBAR -->
+    <nav class="topbar">
+      <a class="logo" href="index.html">
+        <div class="logo-mark">
+          <img src="assets/icon.png" alt="TissueAgent">
+        </div>
+        <span class="logo-text">TissueAgent</span>
+      </a>
+      <div class="topbar-tabs" role="navigation" aria-label="Pages">
+        <a class="topbar-tab" href="index.html" aria-current="page">Figure reproduction</a>
+        <a class="topbar-tab" href="paper.html">Paper</a>
+      </div>
+      <div class="topbar-right">
+        <a class="topbar-link" href="#task" data-spy="task">Task</a>
+        <a class="topbar-link" href="#statistics" data-spy="statistics">Statistics</a>
+        <a class="topbar-link" href="#similarity" data-spy="similarity">Similarity</a>
+        <a class="topbar-link" href="#gallery" data-spy="gallery">Panels</a>
+        <a class="topbar-link topbar-gh" href="https://github.com/ma-compbio-lab/TissueAgent"
+          target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path
+              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" /></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="page">
+      <div class="paper-wrap rp-wrap">
+
+        <!-- ── Hero ── -->
+        <div class="paper-hero">
+          <h1 class="paper-title">
+            <img class="paper-title-icon" src="assets/icon.png" alt="">
+            Reproducing Published Figures with
+            <span class="method-name">TissueAgent</span>
+          </h1>
+          <p class="rp-subtitle">
+            Every panel from the BioFigBench-Spatial snapshot, shown next to its
+            published original, for TissueAgent, SpatialAgent, and Biomni.
+          </p>
+          <div class="paper-btns">
+            <a class="paper-btn btn-primary" href="assets/reproduction/metrics.csv" download>
+              <svg viewBox="0 0 24 24"><path
+                  d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline
+                  points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12"
+                  y2="12" /><polyline
+                  points="9 15 12 18 15 15" /></svg>
+              Metrics (CSV)
+            </a>
+            <a class="paper-btn" href="paper.html">
+              <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+              Paper page
+            </a>
+          </div>
+        </div>
+
+        <noscript>
+          <p class="paper-preprint-notice">The results on this page are drawn by JavaScript from
+            <code>assets/reproduction/data.json</code>. Enable JavaScript to view them.</p>
+        </noscript>
+
+        <!-- ── Task and protocol ── -->
+        <section class="paper-section rp-narrow" id="task">
+          <h2 class="paper-section-title">Task and Protocol</h2>
+          <div class="paper-abstract">
+            <p>
+              BioFigBench-Spatial asks whether an agent can reconstruct a
+              published spatial transcriptomics analysis from data, a reference
+              figure, and text. Each task provides the reference panel, the
+              corresponding data, the figure caption, and optional Methods text,
+              while the authors' code is withheld. The agent has to recover the
+              analysis, run it, and draw the panel.
+            </p>
+            <p data-rp-scope>
+              This page lists the panels on which all three methods were run in
+              the current snapshot.
+            </p>
+          </div>
+        </section>
+
+        <!-- ── Benchmark statistics ── -->
+        <section class="paper-section" id="statistics">
+          <h2 class="paper-section-title rp-narrow">Benchmark Statistics</h2>
+          <div class="rp-narrow">
+            <p class="paper-lead" data-rp-stats-lead></p>
+          </div>
+          <div class="rp-stat-grid" data-rp-stats></div>
+          <div class="rp-narrow">
+            <h3 class="paper-exp-title">Source Papers</h3>
+            <div class="paper-results-table-wrap">
+              <table class="paper-results-table" data-rp-papers></table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Similarity ── -->
+        <section class="paper-section" id="similarity">
+          <h2 class="paper-section-title rp-narrow">Similarity to the Published Panels</h2>
+          <div class="rp-narrow">
+            <p class="paper-lead">
+              Each reproduced image is compared with the published original on a
+              common canvas (long edge at most 768 px, aspect ratio preserved
+              with white padding). <strong>SSIM</strong> is the structural
+              similarity of the grayscale images. <strong>pHash</strong> is
+              1 &minus; <em>d</em>/64, where <em>d</em> is the Hamming distance
+              between 64-bit perceptual hashes. <strong>ORB</strong> is the
+              fraction of cross-checked feature matches (distance at most 64)
+              among the smaller keypoint count. Higher is more similar for all
+              three.
+            </p>
+          </div>
+
+          <div class="rp-card rp-plots">
+            <ul class="rp-legend" data-rp-legend aria-label="Methods"></ul>
+            <div class="rp-plot-grid" data-rp-plots></div>
+            <p class="rp-plot-note" data-rp-plot-note></p>
+          </div>
+
+          <div class="rp-narrow">
+            <div class="paper-results-table-wrap">
+              <table class="paper-results-table" data-rp-coverage></table>
+            </div>
+            <p class="paper-results-table-caption" data-rp-coverage-note></p>
+            <p class="rp-caution">
+              <strong>How to read these numbers.</strong> The scores measure
+              appearance only. They say nothing about whether the analysis behind
+              a figure is correct, and they can reward a blank background or
+              copied pixels. A missing image is left out, never scored as zero.
+              Panels from the same paper are not independent replicates, and no
+              significance test is claimed.
+            </p>
+          </div>
+        </section>
+
+        <!-- ── Gallery ── -->
+        <section class="paper-section" id="gallery">
+          <h2 class="paper-section-title rp-narrow">All Panels</h2>
+          <div class="rp-narrow">
+            <p class="paper-lead">
+              Each row shows the published original and the image each method
+              produced, with the three similarity scores. The best score among
+              the methods is in bold. Under the images are the figure caption
+              and the method description supplied with the task. Select an image
+              to compare all four at full size.
+            </p>
+          </div>
+
+          <div class="rp-controls">
+            <label class="rp-search">
+              <span class="sr-only">Search panels</span>
+              <input type="search" placeholder="Search paper, figure, technology, or method" autocomplete="off"
+                data-rp-search>
+            </label>
+          </div>
+          <p class="rp-summary" aria-live="polite" data-rp-summary></p>
+
+          <div data-rp-gallery></div>
+        </section>
+
+        <footer class="paper-footer">
+          <p>
+            &copy; 2026 The TissueAgent authors ·
+            <a href="https://www.cs.cmu.edu/~jianma/" target="_blank"
+              rel="noopener">Ma Lab</a> ·
+            <a href="https://github.com/ma-compbio-lab/TissueAgent" target="_blank"
+              rel="noopener">GitHub</a>
+          </p>
+        </footer>
+
+      </div>
+    </div>
+
+    <dialog class="rp-dialog" data-rp-dialog aria-label="Compare panel">
+      <div class="rp-dialog-bar">
+        <div class="rp-dialog-title">
+          <strong data-rp-dialog-label></strong>
+          <span data-rp-dialog-paper></span>
+        </div>
+        <div class="rp-dialog-nav">
+          <span data-rp-dialog-count></span>
+          <button type="button" data-rp-dialog-prev aria-label="Previous panel">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <button type="button" data-rp-dialog-next aria-label="Next panel">
+            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
+          <button type="button" data-rp-dialog-close aria-label="Close">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+      </div>
+      <div class="rp-dialog-grid" data-rp-dialog-grid></div>
+    </dialog>
+
+    <div class="rp-tip" role="tooltip" data-rp-tip hidden></div>
+
+  </body>
+</html>
