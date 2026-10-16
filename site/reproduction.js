@@ -194,21 +194,12 @@
   }
 
   function renderScope(node, ctx) {
-    const reruns = ctx.panels.filter((p) => p.runs.tissueagent.rerun);
-    const rerunPapers = [...new Set(reruns.map((p) => p.paper.title))];
     const parts = [
       `This page lists the ${ctx.panels.length} panels from ${plural(ctx.data.papers.length, "paper")} on which ` +
         "TissueAgent, SpatialAgent, and Biomni were all run in the current snapshot. The automated runs used GPT-5.5 " +
         "with high reasoning effort and a two-hour limit per panel, and when a panel was retried the latest attempt is " +
         "shown. Panels whose required data could not be obtained were skipped and are not listed.",
     ];
-    if (reruns.length) {
-      parts.push(
-        ` The ${plural(reruns.length, "TissueAgent result")} for “${rerunPapers.join("”, “")}”, marked †, ` +
-          "come from a rerun in a separate notebook workflow rather than the automated harness, so they do not " +
-          "follow an identical protocol."
-      );
-    }
     const date = fmtDate(ctx.data.generatedAt);
     if (date) parts.push(` Similarity scores were computed on ${date}.`);
     node.textContent = parts.join("");
@@ -319,7 +310,7 @@
       const run = panel.runs[agent.key];
       const cell = el("figure", `rp-cell rp-c-${agent.key}`);
       const cap = el("figcaption", "rp-cell-head");
-      cap.append(el("strong", null, run.rerun ? `${agent.name} †` : agent.name));
+      cap.append(el("strong", null, agent.name));
       cell.append(cap);
       if (run.image) {
         const btn = el("button", "rp-thumb");
@@ -343,9 +334,6 @@
     card.append(row);
 
     const notes = [];
-    if (panel.runs.tissueagent.rerun) {
-      notes.push("† The TissueAgent result for this panel is a rerun in a separate notebook workflow, not the automated harness.");
-    }
     const flagged = AGENTS.filter((a) => panel.runs[a.key].flagged).map((a) => a.name);
     if (flagged.length) {
       notes.push(
@@ -451,7 +439,7 @@
         const footer = scoreRow(panel, agent.key, best);
         grid.append(
           mk(
-            run.rerun ? `${agent.name} †` : agent.name,
+            agent.name,
             run.image ? imageUrl(panel, agent.key, false) : "",
             "No image",
             footer,

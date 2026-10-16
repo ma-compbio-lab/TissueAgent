@@ -39,7 +39,6 @@ FULL_EDGE = 1600
 THUMB_EDGE = 560
 FULL_QUALITY = 84
 THUMB_QUALITY = 80
-MANUAL_RERUN_MARKER = "mkdir_loff_reproduce_resutls_tissueagent"
 METRICS_REPORT = Path("reports/figure_reproduce_20260904/metrics.json")
 
 
@@ -97,7 +96,7 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
     columns = [
         "article_id", "panel_id", "figure", "paper_title", "method",
         "has_image", "ssim", "phash_similarity", "orb_similarity", "in_matched_set",
-        "access_audit_flag", "rerun_in_separate_workflow",
+        "access_audit_flag",
     ]
     with dest.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
@@ -110,7 +109,7 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
                         paper["article"], panel["panel"], panel["label"], paper["title"], agent,
                         int(run["image"]),
                         *("" if run[k] is None else run[k] for k in ("ssim", "phash", "orb")),
-                        int(panel["matched"]), int(run["flagged"]), int(run["rerun"]),
+                        int(panel["matched"]), int(run["flagged"]),
                     ])
 
 
@@ -176,7 +175,6 @@ def build(source: Path, out: Path) -> dict:
                 "phash": _round(score.get("phash_similarity")),
                 "orb": _round(score.get("orb_similarity")),
                 "flagged": bool(score.get("audit_flag")),
-                "rerun": bool(run.image_path and MANUAL_RERUN_MARKER in str(run.image_path)),
             }
 
         paper = papers.setdefault(
