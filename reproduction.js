@@ -3,7 +3,11 @@
 (() => {
   "use strict";
 
-  const DATA_URL = "assets/reproduction/data.json";
+  // index.html stamps this script tag with the data file's content hash (scripts/stamp_site_version.py),
+  // so a changed data.json is never served from an old cache alongside new code.
+  const DATA_VERSION = document.currentScript && document.currentScript.dataset.dataVersion;
+  const DATA_PATH = "assets/reproduction/data.json";
+  const DATA_URL = DATA_VERSION ? `${DATA_PATH}?v=${DATA_VERSION}` : DATA_PATH;
   const IMG_ROOT = "assets/reproduction/img/";
   const AGENTS = [
     { key: "tissueagent", name: "TissueAgent" },
@@ -763,13 +767,24 @@
         panels.filter((p) => p.matched).map((p) => p.runs[agent][metric]).filter((v) => v != null),
     };
 
-    renderScope($("[data-rp-scope]"), ctx);
-    renderStats($("[data-rp-stats]"), $("[data-rp-stats-lead]"), $("[data-rp-papers]"), ctx);
-    renderLegend($("[data-rp-legend]"));
-    renderPlots($("[data-rp-plots]"), $("[data-rp-plot-note]"), ctx);
-    const groups = buildGallery($("[data-rp-gallery]"), ctx);
-    initSearch(ctx, groups, initDialog(ctx));
-    initSpy();
+    // A section that fails is logged and skipped; the others still draw.
+    const section = (name, fn) => {
+      try {
+        return fn();
+      } catch (err) {
+        console.error(`The "${name}" section could not be drawn:`, err);
+        return null;
+      }
+    };
+
+    section("scope", () => renderScope($("[data-rp-scope]"), ctx));
+    section("statistics", () => renderStats($("[data-rp-stats]"), $("[data-rp-stats-lead]"), $("[data-rp-papers]"), ctx));
+    section("legend", () => renderLegend($("[data-rp-legend]")));
+    section("plots", () => renderPlots($("[data-rp-plots]"), $("[data-rp-plot-note]"), ctx));
+    const groups = section("gallery", () => buildGallery($("[data-rp-gallery]"), ctx)) || [];
+    const openCompare = section("compare dialog", () => initDialog(ctx)) || (() => {});
+    section("search", () => initSearch(ctx, groups, openCompare));
+    section("navigation", () => initSpy());
   }
 
   fetch(DATA_URL)
@@ -777,11 +792,26 @@
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
     })
-    .then(init)
-    .catch((err) => {
-      showError(
-        `Could not load ${DATA_URL} (${err.message}). Serve the site over HTTP, for example with ` +
-          "“python -m http.server” in the site folder, because browsers block fetch() on file:// pages."
-      );
-    });
+    .then(
+      (data) => {
+        try {
+          init(data);
+        } catch (err) {
+          console.error(err);
+          showError(
+            `This page could not be drawn (${err.message}). Reload it; if the problem stays, clear the ` +
+              "browser cache for this site."
+          );
+        }
+      },
+      (err) => {
+        const local = location.protocol === "file:";
+        showError(
+          `Could not load the results data (${err.message}). ` +
+            (local
+              ? "Open the site over HTTP, for example with “python -m http.server” in the site folder, because browsers block fetch() on file:// pages."
+              : "Reload the page; if the problem stays, clear the browser cache for this site.")
+        );
+      }
+    );
 })();
