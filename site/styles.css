@@ -738,7 +738,6 @@ button.rp-thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 
 .rp-scores i { font-style: normal; font-size: 0.68rem; color: var(--ink-4); }
 .rp-scores b { font-size: 0.82rem; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .rp-scores .is-best b { font-weight: 700; color: var(--blue); }
-.rp-note { margin-top: 10px; padding: 8px 12px; font-size: 0.78rem; line-height: 1.5; color: var(--ink-2); background: var(--amber-soft); border-radius: var(--r-sm); }
 .rp-caption { margin-top: 10px; font-size: 0.82rem; color: var(--ink-3); }
 .rp-caption summary { width: fit-content; cursor: pointer; font-weight: 500; color: var(--ink-2); }
 .rp-caption summary:hover { color: var(--blue); }

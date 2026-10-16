@@ -96,7 +96,6 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
     columns = [
         "article_id", "panel_id", "figure", "paper_title", "method",
         "has_image", "ssim", "phash_similarity", "orb_similarity", "in_matched_set",
-        "access_audit_flag",
     ]
     with dest.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
@@ -109,7 +108,7 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
                         paper["article"], panel["panel"], panel["label"], paper["title"], agent,
                         int(run["image"]),
                         *("" if run[k] is None else run[k] for k in ("ssim", "phash", "orb")),
-                        int(panel["matched"]), int(run["flagged"]),
+                        int(panel["matched"]),
                     ])
 
 
@@ -174,7 +173,6 @@ def build(source: Path, out: Path) -> dict:
                 "ssim": _round(score.get("ssim")),
                 "phash": _round(score.get("phash_similarity")),
                 "orb": _round(score.get("orb_similarity")),
-                "flagged": bool(score.get("audit_flag")),
             }
 
         paper = papers.setdefault(

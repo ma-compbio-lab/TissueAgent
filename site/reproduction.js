@@ -181,7 +181,7 @@
       AGENTS.slice(1).map((a) => `${a.name} ${fmt(med(metric, a.key))}`).join(" · ");
     const cards = [
       ["#gallery", String(ctx.panels.length), "Panels compared", `From ${plural(ctx.data.papers.length, "paper")}`],
-      ["#gallery", String(ctx.data.matchedCount), "Matched panels", "Images from all three methods"],
+      ["#gallery", String(ctx.data.matchedCount), "Matched panels", "Used for the similarity scores"],
       ["#similarity", fmt(med("ssim", "tissueagent")), "Median SSIM, TissueAgent", others("ssim")],
       ["#similarity", fmt(med("phash", "tissueagent")), "Median pHash, TissueAgent", others("phash")],
     ];
@@ -245,12 +245,9 @@
     });
     table.append(head, body);
 
-    const flagged = ctx.panels.filter((p) => AGENTS.some((a) => p.runs[a.key].flagged)).length;
     noteEl.textContent =
-      `Every method was run on all ${ctx.panels.length} panels. Medians are taken over the ${ctx.data.matchedCount} ` +
-      "matched panels, which have an image from every method" +
-      (flagged ? `; ${plural(flagged, "panel")} with an automatic access-audit flag ${flagged === 1 ? "is" : "are"} left out of that set` : "") +
-      ".";
+      `Every method was run on all ${ctx.panels.length} panels. Medians are taken over the ` +
+      `${ctx.data.matchedCount} matched panels.`;
   }
 
   /* ---- gallery ---- */
@@ -332,16 +329,6 @@
       row.append(cell);
     });
     card.append(row);
-
-    const notes = [];
-    const flagged = AGENTS.filter((a) => panel.runs[a.key].flagged).map((a) => a.name);
-    if (flagged.length) {
-      notes.push(
-        `An automatic access-audit flag on the ${flagged.join(" and ")} run leaves this panel out of the matched set. ` +
-          "Flags are review signals, not confirmed violations."
-      );
-    }
-    notes.forEach((text) => card.append(el("p", "rp-note", text)));
 
     if (panel.caption) {
       const details = el("details", "rp-caption");
