@@ -175,24 +175,6 @@
 
   /* ---- sections ---- */
 
-  function renderGlance(box, ctx) {
-    const med = (metric, agent) => median(ctx.matchedValues(metric, agent));
-    const others = (metric) =>
-      AGENTS.slice(1).map((a) => `${a.name} ${fmt(med(metric, a.key))}`).join(" · ");
-    const cards = [
-      ["#gallery", String(ctx.panels.length), "Panels compared", `From ${plural(ctx.data.papers.length, "paper")}`],
-      ["#gallery", String(ctx.data.matchedCount), "Matched panels", "Used for the similarity scores"],
-      ["#similarity", fmt(med("ssim", "tissueagent")), "Median SSIM, TissueAgent", others("ssim")],
-      ["#similarity", fmt(med("phash", "tissueagent")), "Median pHash, TissueAgent", others("phash")],
-    ];
-    cards.forEach(([href, num, label, sub]) => {
-      const a = el("a", "paper-highlight");
-      a.href = href;
-      a.append(el("span", "ph-num", num), el("span", "ph-lab", label), el("span", "ph-sub", sub));
-      box.append(a);
-    });
-  }
-
   function renderScope(node, ctx) {
     const parts = [
       `This page lists the ${ctx.panels.length} panels from ${plural(ctx.data.papers.length, "paper")} on which ` +
@@ -680,7 +662,6 @@
     };
 
     renderScope($("[data-rp-scope]"), ctx);
-    renderGlance($("[data-rp-glance]"), ctx);
     renderLegend($("[data-rp-legend]"));
     renderPlots($("[data-rp-plots]"), $("[data-rp-plot-note]"), ctx);
     renderCoverage($("[data-rp-coverage]"), $("[data-rp-coverage-note]"), ctx);
