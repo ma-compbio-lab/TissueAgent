@@ -679,19 +679,10 @@ button, input, select { font: inherit; }
 .rp-plot-note { margin-top: 10px; font-size: 0.78rem; color: var(--ink-3); line-height: 1.55; }
 
 /* Gallery controls */
-.rp-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 8px; }
-.rp-seg { display: inline-flex; padding: 3px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--r-md); }
-.rp-seg button {
-  padding: 6px 14px; border: 0; border-radius: 7px; background: none;
-  font-size: 0.84rem; font-weight: 500; color: var(--ink-3); cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.rp-seg button span { margin-left: 3px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
-.rp-seg button:hover { color: var(--ink); }
-.rp-seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
-.rp-seg button[aria-pressed="true"] span { color: var(--blue); }
+.rp-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 4px 0 8px; }
+.rp-search { display: block; width: min(380px, 100%); }
 .rp-search input {
-  width: min(320px, 100%); padding: 8px 12px;
+  width: 100%; padding: 8px 12px;
   border: 1px solid var(--border-hi); border-radius: var(--r-md);
   background: var(--surface); color: var(--ink); font-size: 0.86rem;
 }
@@ -792,13 +783,11 @@ button.rp-thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 
   .rp-card { padding: 16px 14px 12px; }
   .rp-panel { padding: 12px 12px 10px; }
   .rp-badge { margin-left: 0; }
-  .rp-controls { align-items: stretch; }
-  .rp-seg { width: 100%; }
-  .rp-seg button { flex: 1; padding: 6px 4px; font-size: 0.78rem; }
+  .rp-search { width: 100%; }
   .rp-dialog-grid { grid-template-columns: 1fr; }
   .rp-dialog-bar { padding: 10px 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .rp-dialog[open], .rp-dialog[open]::backdrop { animation: none; }
-  .rp-body, .rp-seg button, button.rp-thumb { transition: none; }
+  .rp-body, button.rp-thumb { transition: none; }
 }

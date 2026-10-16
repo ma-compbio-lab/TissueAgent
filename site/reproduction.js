@@ -461,41 +461,20 @@
     };
   }
 
-  /* ---- filters ---- */
+  /* ---- search ---- */
 
-  function initFilters(ctx, groups, openCompare) {
-    const filterBox = $("[data-rp-filters]");
+  function initSearch(ctx, groups, openCompare) {
     const search = $("[data-rp-search]");
     const summary = $("[data-rp-summary]");
-    const missing = (p) => AGENTS.some((a) => !p.runs[a.key].image);
-    const filters = [
-      { id: "all", label: "All", test: () => true },
-      { id: "matched", label: "Matched", test: (p) => p.matched },
-      { id: "missing", label: "Missing an image", test: missing },
-    ];
-    let active = "all";
     let visible = ctx.panels.slice();
-
-    filters.forEach((f) => {
-      const btn = el("button");
-      btn.type = "button";
-      btn.dataset.filter = f.id;
-      btn.append(document.createTextNode(`${f.label} `), el("span", null, String(ctx.panels.filter(f.test).length)));
-      btn.addEventListener("click", () => {
-        active = f.id;
-        apply();
-      });
-      filterBox.append(btn);
-    });
 
     function apply() {
       const needle = search.value.trim().toLowerCase();
-      const test = filters.find((f) => f.id === active).test;
       visible = [];
       groups.forEach(({ section, cards }) => {
         let shown = 0;
         cards.forEach(({ panel, card }) => {
-          const ok = test(panel) && (!needle || panel.search.includes(needle));
+          const ok = !needle || panel.search.includes(needle);
           card.hidden = !ok;
           if (ok) {
             shown += 1;
@@ -504,10 +483,9 @@
         });
         section.hidden = shown === 0;
       });
-      $$("button", filterBox).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filter === active)));
-      summary.textContent = visible.length
-        ? `Showing ${visible.length} of ${ctx.panels.length} panels.`
-        : "No panels match. Clear the search or choose another filter.";
+      if (!needle) summary.textContent = "";
+      else if (visible.length) summary.textContent = `Showing ${visible.length} of ${ctx.panels.length} panels.`;
+      else summary.textContent = "No panels match. Clear the search to see all panels.";
     }
 
     search.addEventListener("input", apply);
@@ -581,7 +559,7 @@
     renderPlots($("[data-rp-plots]"), $("[data-rp-plot-note]"), ctx);
     renderCoverage($("[data-rp-coverage]"), $("[data-rp-coverage-note]"), ctx);
     const groups = buildGallery($("[data-rp-gallery]"), ctx);
-    initFilters(ctx, groups, initDialog(ctx));
+    initSearch(ctx, groups, initDialog(ctx));
     initSpy();
   }
 
