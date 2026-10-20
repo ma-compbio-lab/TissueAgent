@@ -290,7 +290,7 @@
       (span ? `, published ${span}` : "") +
       ". Each panel has one task type. Spatial technology, auxiliary data, and raw-data source can have several " +
       "labels per panel, so their percentages can add up to more than 100%. Technology and auxiliary-data labels " +
-      "come from a rule-based reading of each panel's data records and text.";
+      "come from a rule-based reading of each panel's data records and text, with a few hand corrections explained below the charts.";
 
     const kind = (p) => (/^Extended/i.test(p.label) ? "Extended Data figure" : /^Supp/i.test(p.label) ? "Supplementary figure" : "Main figure");
     const KIND_ORDER = ["Main figure", "Extended Data figure", "Supplementary figure"];
@@ -336,6 +336,67 @@
         body.append(tr);
       });
     papersTable.append(head, body);
+  }
+
+  /** Explain how the technology and auxiliary-data labels were made and list the hand corrections. */
+  function renderLabelNote(host, ctx) {
+    const changes = ctx.data.labelCorrections || [];
+    const intro = el("p");
+    intro.append(el("strong", null, "About these labels. "));
+    intro.append(
+      document.createTextNode(
+        "Spatial technology and auxiliary data are assigned by a keyword rule over each panel's data records and " +
+          "text. The rule looks for platform and data-type names, not dataset names or the paper title, so a panel " +
+          "whose data are described only by a name or accession (for example “PDAC-A ST1”) can come out as " +
+          "“Other / unspecified” or “None identified” even though its records settle the answer. " +
+          (changes.length
+            ? `We corrected the ${changes.length} cases where they do; they are listed below. `
+            : "") +
+          "“None identified” means a panel's records name no data type besides the spatial data. Reference-free " +
+          "deconvolution, for instance, uses no single-cell reference."
+      )
+    );
+    host.append(intro);
+    if (!changes.length) return;
+
+    const details = el("details", "rp-label-details");
+    details.append(el("summary", null, `Hand-corrected labels (${changes.length})`));
+    const wrap = el("div", "paper-results-table-wrap");
+    const table = el("table", "paper-results-table");
+    const head = el("thead");
+    const hr = el("tr");
+    ["Panel", "Label", "Changed to", "Evidence in the data records"].forEach((h) =>
+      hr.append(el("th", h === "Panel" || h === "Evidence in the data records" ? "setting" : null, h))
+    );
+    head.append(hr);
+    const body = el("tbody");
+    const list = (labels) => labels.map(prettyLabel).join(", ");
+    // Panels of one paper that got the same correction for the same reason share a row.
+    const groups = new Map();
+    changes.forEach((c) => {
+      const key = [c.article, c.field, c.from.join("|"), c.to.join("|"), c.reason].join("\u0001");
+      if (!groups.has(key)) groups.set(key, { ...c, labels: [] });
+      groups.get(key).labels.push(c.label);
+    });
+    const order = (g) => (g.field === "technology" ? 0 : 1);
+    [...groups.values()]
+      .sort((a, b) => order(a) - order(b) || a.title.localeCompare(b.title))
+      .forEach((g) => {
+        const tr = el("tr", "row-base");
+        const where = el("td", "text-left");
+        where.append(el("strong", null, g.labels.join(", ")), document.createTextNode(` · ${g.title}`));
+        tr.append(
+          where,
+          el("td", null, g.field === "technology" ? "Spatial technology" : "Auxiliary data"),
+          el("td", null, `${list(g.from)} → ${list(g.to)}`),
+          el("td", "text-left", g.reason)
+        );
+        body.append(tr);
+      });
+    table.append(head, body);
+    wrap.append(table);
+    details.append(wrap);
+    host.append(details);
   }
 
   /* ---- method text: the small Markdown subset it uses, built with DOM nodes ---- */
@@ -779,6 +840,7 @@
 
     section("scope", () => renderScope($("[data-rp-scope]"), ctx));
     section("statistics", () => renderStats($("[data-rp-stats]"), $("[data-rp-stats-lead]"), $("[data-rp-papers]"), ctx));
+    section("label note", () => renderLabelNote($("[data-rp-label-note]"), ctx));
     section("legend", () => renderLegend($("[data-rp-legend]")));
     section("plots", () => renderPlots($("[data-rp-plots]"), $("[data-rp-plot-note]"), ctx));
     const groups = section("gallery", () => buildGallery($("[data-rp-gallery]"), ctx)) || [];

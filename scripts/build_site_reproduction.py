@@ -11,6 +11,10 @@ the static page shows exactly what the Flask page shows, including the merged re
 
 where ``<slot>`` is ``original``, ``tissueagent``, ``spatialagent`` or ``biomni``.
 
+Results can be replaced without touching the package: put ``<source>/updates/<article>/<panel>/<method>.png``
+and the build shows that image and recomputes its SSIM / pHash / ORB (scripts/panel_metrics.py). Hand
+corrections to the keyword-based technology and auxiliary-data labels live in scripts/label_corrections.py.
+
 Only panels on which all three methods were run are exported, so every method is shown on the same
 panels. Panels that only some methods attempted are skipped (the count is printed).
 
@@ -30,6 +34,8 @@ import sys
 from pathlib import Path
 
 from PIL import Image, ImageOps
+
+from label_corrections import apply as apply_label_corrections
 
 Image.MAX_IMAGE_PIXELS = None  # trusted local data; some source panels are very large
 
@@ -60,7 +66,7 @@ def _save_scaled(image: Image.Image, edge: int, quality: int, dest: Path) -> tup
     return scaled.size
 
 
-def _write_images(source: Path, folder: Path, slot: str) -> tuple[int, int] | None:
+def _write_images(source: Path, folder: Path, slot: str, force: bool = False) -> tuple[int, int] | None:
     """Write the full and thumbnail variants; return the full image's (width, height)."""
     if not source or not source.is_file():
         return None
@@ -68,7 +74,8 @@ def _write_images(source: Path, folder: Path, slot: str) -> tuple[int, int] | No
     thumb_dest = folder / f"{slot}-s.webp"
     newest_source = source.stat().st_mtime
     if (
-        full_dest.is_file()
+        not force
+        and full_dest.is_file()
         and thumb_dest.is_file()
         and min(full_dest.stat().st_mtime, thumb_dest.stat().st_mtime) >= newest_source
     ):
@@ -144,6 +151,25 @@ def _write_metrics_csv(data: dict, dest: Path) -> None:
                     ])
 
 
+def _find_updates(source: Path) -> dict[tuple[str, str, str], Path]:
+    """Replacement result images: ``updates/<article>/<panel>/<method>.<ext>``."""
+    found: dict[tuple[str, str, str], Path] = {}
+    root = source / "updates"
+    if not root.is_dir():
+        return found
+    for path in sorted(root.glob("*/*/*")):
+        if path.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp") and path.stem in AGENTS:
+            found[(path.parent.parent.name, path.parent.name, path.stem)] = path
+    return found
+
+
+def _score_update(reference: Path, generated: Path) -> dict:
+    import panel_metrics  # needs OpenCV, scikit-image and scipy; only loaded when a result is replaced
+
+    got = panel_metrics.score(reference, generated)
+    return {"ssim": got["ssim"], "phash_similarity": got["phash_similarity"], "orb_similarity": got["orb_similarity"]}
+
+
 def _prune_images(img_root: Path, papers: dict[str, dict]) -> None:
     """Delete images from earlier builds that the current data no longer references."""
     expected: set[Path] = set()
@@ -176,6 +202,9 @@ def build(source: Path, out: Path) -> dict:
     matched = set(metrics["paired"])
     dataset = {(d["article_id"], d["panel_id"]): d for d in metrics["dataset"]}
 
+    updates = _find_updates(source)
+    replaced: list[str] = []
+    label_changes: list[dict] = []
     papers: dict[str, dict] = {}
     excluded: list[dict] = []
     for record in snapshot.records:
@@ -193,13 +222,25 @@ def build(source: Path, out: Path) -> dict:
             continue
         folder = out / "img" / record.article_id / record.panel_id
         meta = dataset.get((record.article_id, record.panel_id), {})
+        technologies, modalities, changes = apply_label_corrections(
+            record.article_id, record.panel_id, meta.get("technologies", []), meta.get("modalities", [])
+        )
+        for change in changes:
+            change.update(title=record.paper_title, label=record.published_id)
+        label_changes.extend(changes)
 
         original_size = _write_images(record.original_image_path, folder, "original")
         runs = {}
         for agent in AGENTS:
             run = record.agent_run(agent)
             score = rows.get(f"{key}::{agent}", {})
-            size = _write_images(run.image_path, folder, agent) if run.image_path else None
+            image_path = run.image_path
+            replacement = updates.get((record.article_id, record.panel_id, agent))
+            if replacement:
+                image_path = replacement
+                score = _score_update(record.original_image_path, replacement)
+                replaced.append(f"{record.article_id} {record.panel_id} {agent}")
+            size = _write_images(image_path, folder, agent, force=bool(replacement)) if image_path else None
             runs[agent] = {
                 "image": size is not None,
                 "ssim": _round(score.get("ssim")),
@@ -225,8 +266,8 @@ def build(source: Path, out: Path) -> dict:
                 "caption": record.caption,
                 "methods": (record.methods or "").strip(),
                 "figureType": meta.get("figure_type", ""),
-                "technologies": meta.get("technologies", []),
-                "modalities": meta.get("modalities", []),
+                "technologies": technologies,
+                "modalities": modalities,
                 "dataSources": _data_sources(record.raw_data_urls),
                 "matched": key in matched,
                 "originalSize": list(original_size) if original_size else None,
@@ -248,6 +289,7 @@ def build(source: Path, out: Path) -> dict:
         "generatedAt": metrics["generated_at"],
         "source": snapshot.source_label,
         "matchedCount": matched_count,
+        "labelCorrections": label_changes,
         "papers": list(papers.values()),
     }
     out.mkdir(parents=True, exist_ok=True)
@@ -259,7 +301,10 @@ def build(source: Path, out: Path) -> dict:
         from stamp_site_version import stamp
 
         stamp()
+    if replaced:
+        print(f"replaced {len(replaced)} result(s) and recomputed their scores: " + "; ".join(replaced))
     print(
+        f"{len(label_changes)} label correction(s) applied; "
         f"{len(panels)} panels from {len(papers)} papers, {matched_count} matched, "
         f"{len(excluded)} left out (not run by every method); {bytes_written / 1e6:.1f} MB of images, "
         f"data.json {(out / 'data.json').stat().st_size / 1e3:.0f} kB"
