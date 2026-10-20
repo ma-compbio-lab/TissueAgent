@@ -213,12 +213,12 @@
   const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const LABEL_OVERRIDES = {
     "legacy Spatial Transcriptomics": "Spatial Transcriptomics (legacy)",
-    "No auxiliary modality identified": "None identified",
+    "No auxiliary modality identified": "Spatial data only",
   };
-  const LAST = new Set(["Other / unspecified", "None identified"]);
+  const LAST = new Set(["Other / unspecified", "Spatial data only"]);
 
   // Plain words that open a label get a capital; names such as seqFISH or scRNA-seq keep their spelling.
-  const CAPITALISE = new Set(["histology", "genotype", "bulk", "microscopy", "immunofluorescence"]);
+  const CAPITALISE = new Set(["histology", "genotype", "bulk", "microscopy", "immunofluorescence", "cell-type"]);
 
   function prettyLabel(label) {
     if (LABEL_OVERRIDES[label]) return LABEL_OVERRIDES[label];
@@ -299,7 +299,7 @@
 
     statCard(host, "Task type", "One label per panel", tally(ctx.panels.map((p) => p.figureType)).sort(byCount), total);
     statCard(host, "Spatial technology", "Several labels possible", tally(ctx.panels.map((p) => p.technologies)).sort(byCount), total);
-    statCard(host, "Auxiliary data", "Other data a panel draws on. Several labels possible", tally(ctx.panels.map((p) => p.modalities)).sort(byCount), total);
+    statCard(host, "Auxiliary data", "Other data a panel draws on besides the spatial data. Several labels possible", tally(ctx.panels.map((p) => p.modalities)).sort(byCount), total);
     statCard(host, "Raw-data source", "Where the raw data are hosted. Several possible", tally(ctx.panels.map((p) => p.dataSources)).sort(byCount), total);
     statCard(host, "Journal", "", tally(ctx.panels.map((p) => panelPaper(p).journal)).sort(byCount), total);
     statCard(host, "Publication year", "", tally(ctx.panels.map((p) => panelPaper(p).year)).sort(chrono), total);
@@ -338,9 +338,10 @@
     papersTable.append(head, body);
   }
 
-  /** Explain how the technology and auxiliary-data labels were made and list the hand corrections. */
+  /** Explain how the technology and auxiliary-data labels were made; list the hand corrections and the checks. */
   function renderLabelNote(host, ctx) {
     const changes = ctx.data.labelCorrections || [];
+    const checks = ctx.data.labelChecks || [];
     const intro = el("p");
     intro.append(el("strong", null, "About these labels. "));
     intro.append(
@@ -348,55 +349,86 @@
         "Spatial technology and auxiliary data are assigned by a keyword rule over each panel's data records and " +
           "text. The rule looks for platform and data-type names, not dataset names or the paper title, so a panel " +
           "whose data are described only by a name or accession (for example “PDAC-A ST1”) can come out as " +
-          "“Other / unspecified” or “None identified” even though its records settle the answer. " +
+          "“Other / unspecified” or “Spatial data only” even though its records settle the answer. " +
           (changes.length
-            ? `We corrected the ${changes.length} cases where they do; they are listed below. `
+            ? `We checked the panels the rule left at those two labels and corrected the ${changes.length} cases where the panel's own records, caption, or methods name the platform or data type; they are listed below. `
             : "") +
-          "“None identified” means a panel's records name no data type besides the spatial data. Reference-free " +
-          "deconvolution, for instance, uses no single-cell reference."
+          "“Spatial data only” means nothing besides the spatial data is named for that panel. Reference-free " +
+          "deconvolution, for instance, uses no single-cell reference, and a result that only builds on an earlier " +
+          "analysis does not count as another data type."
       )
     );
     host.append(intro);
-    if (!changes.length) return;
 
-    const details = el("details", "rp-label-details");
-    details.append(el("summary", null, `Hand-corrected labels (${changes.length})`));
-    const wrap = el("div", "paper-results-table-wrap");
-    const table = el("table", "paper-results-table");
-    const head = el("thead");
-    const hr = el("tr");
-    ["Panel", "Label", "Changed to", "Evidence in the data records"].forEach((h) =>
-      hr.append(el("th", h === "Panel" || h === "Evidence in the data records" ? "setting" : null, h))
-    );
-    head.append(hr);
-    const body = el("tbody");
-    const list = (labels) => labels.map(prettyLabel).join(", ");
-    // Panels of one paper that got the same correction for the same reason share a row.
-    const groups = new Map();
-    changes.forEach((c) => {
-      const key = [c.article, c.field, c.from.join("|"), c.to.join("|"), c.reason].join("\u0001");
-      if (!groups.has(key)) groups.set(key, { ...c, labels: [] });
-      groups.get(key).labels.push(c.label);
-    });
-    const order = (g) => (g.field === "technology" ? 0 : 1);
-    [...groups.values()]
-      .sort((a, b) => order(a) - order(b) || a.title.localeCompare(b.title))
-      .forEach((g) => {
+    const table = (headers, wide, rows) => {
+      const wrap = el("div", "paper-results-table-wrap");
+      const t = el("table", "paper-results-table");
+      const head = el("thead");
+      const hr = el("tr");
+      headers.forEach((h) => hr.append(el("th", wide.includes(h) ? "setting" : null, h)));
+      head.append(hr);
+      const body = el("tbody");
+      rows.forEach((cells) => {
         const tr = el("tr", "row-base");
-        const where = el("td", "text-left");
-        where.append(el("strong", null, g.labels.join(", ")), document.createTextNode(` · ${g.title}`));
-        tr.append(
-          where,
-          el("td", null, g.field === "technology" ? "Spatial technology" : "Auxiliary data"),
-          el("td", null, `${list(g.from)} → ${list(g.to)}`),
-          el("td", "text-left", g.reason)
-        );
+        cells.forEach((cell, i) => {
+          const td = el("td", wide.includes(headers[i]) ? "text-left" : null);
+          if (typeof cell === "string") td.textContent = cell;
+          else td.append(...cell);
+          tr.append(td);
+        });
         body.append(tr);
       });
-    table.append(head, body);
-    wrap.append(table);
-    details.append(wrap);
-    host.append(details);
+      t.append(head, body);
+      wrap.append(t);
+      return wrap;
+    };
+    const where = (labels, title) => [el("strong", null, labels.join(", ")), document.createTextNode(` · ${title}`)];
+    // Panels of one paper that share a verdict and a reason share a row.
+    const group = (items, keyOf) => {
+      const groups = new Map();
+      items.forEach((c) => {
+        const key = keyOf(c);
+        if (!groups.has(key)) groups.set(key, { ...c, labels: [] });
+        groups.get(key).labels.push(c.label);
+      });
+      return [...groups.values()];
+    };
+
+    if (changes.length) {
+      const list = (labels) => labels.map(prettyLabel).join(", ");
+      const order = (g) => (g.field === "technology" ? 0 : 1);
+      const groups = group(changes, (c) => [c.article, c.field, c.from.join("|"), c.to.join("|"), c.reason].join("\u0001"))
+        .sort((a, b) => order(a) - order(b) || a.title.localeCompare(b.title));
+      const details = el("details", "rp-label-details");
+      details.append(el("summary", null, `Hand-corrected labels (${changes.length})`));
+      details.append(
+        table(
+          ["Panel", "Label", "Changed to", "Evidence"],
+          ["Panel", "Evidence"],
+          groups.map((g) => [
+            where(g.labels, g.title),
+            g.field === "technology" ? "Spatial technology" : "Auxiliary data",
+            `${list(g.from)} → ${list(g.to)}`,
+            g.reason,
+          ])
+        )
+      );
+      host.append(details);
+    }
+
+    if (checks.length) {
+      const groups = group(checks, (c) => [c.article, c.reason].join("\u0001")).sort((a, b) => a.title.localeCompare(b.title));
+      const details = el("details", "rp-label-details");
+      details.append(el("summary", null, `Checked and left as “Spatial data only” (${checks.length})`));
+      details.append(
+        table(
+          ["Panel", "Why it stays"],
+          ["Panel", "Why it stays"],
+          groups.map((g) => [where(g.labels, g.title), g.reason])
+        )
+      );
+      host.append(details);
+    }
   }
 
   /* ---- method text: the small Markdown subset it uses, built with DOM nodes ---- */
