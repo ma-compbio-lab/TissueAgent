@@ -36,7 +36,6 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 from label_corrections import apply as apply_label_corrections
-from label_corrections import checks_for
 
 Image.MAX_IMAGE_PIXELS = None  # trusted local data; some source panels are very large
 
@@ -206,7 +205,6 @@ def build(source: Path, out: Path) -> dict:
     updates = _find_updates(source)
     replaced: list[str] = []
     label_changes: list[dict] = []
-    label_checks: list[dict] = []
     papers: dict[str, dict] = {}
     excluded: list[dict] = []
     for record in snapshot.records:
@@ -230,16 +228,6 @@ def build(source: Path, out: Path) -> dict:
         for change in changes:
             change.update(title=record.paper_title, label=record.published_id)
         label_changes.extend(changes)
-        for check in checks_for(record.article_id, record.panel_id):
-            label_checks.append(
-                {
-                    "article": record.article_id,
-                    "title": record.paper_title,
-                    "panel": record.panel_id,
-                    "label": record.published_id,
-                    "reason": check["reason"],
-                }
-            )
 
         original_size = _write_images(record.original_image_path, folder, "original")
         runs = {}
@@ -301,8 +289,6 @@ def build(source: Path, out: Path) -> dict:
         "generatedAt": metrics["generated_at"],
         "source": snapshot.source_label,
         "matchedCount": matched_count,
-        "labelCorrections": label_changes,
-        "labelChecks": label_checks,
         "papers": list(papers.values()),
     }
     out.mkdir(parents=True, exist_ok=True)

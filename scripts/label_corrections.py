@@ -12,9 +12,8 @@ A correction therefore either adds a label ("to"), removes a wrong one ("remove"
 
 A data type counts for a panel when the panel's own caption or methods name it (or its data records do).
 Derived results that only exist upstream of the panel do not count. The entries below fix the cases where
-that evidence settles the answer. Every entry states the evidence it rests on; the page lists them so readers
-can check. Labels use the package's own vocabulary.
-Panels not listed keep the package's labels.
+that evidence settles the answer. Every entry states the evidence it rests on. Labels use the package's own
+vocabulary. Panels not listed keep the package's labels.
 """
 
 from __future__ import annotations
@@ -188,7 +187,7 @@ CORRECTIONS = [
 ]
 
 # Panels that looked as if they might use another data type, were checked against their own caption and
-# methods, and stay "Spatial data only". Listed on the page so the label can be audited.
+# methods, and stay "Spatial data only". An audit record: nothing reads it, and the page does not show it.
 CHECKED_SPATIAL_ONLY = [
     {
         "panels": [("s41592-022-01575-3", "Fig_5e")],
@@ -214,10 +213,6 @@ CHECKED_SPATIAL_ONLY = [
 ]
 
 _PLACEHOLDER = {"technologies": OTHER, "modalities": NONE}
-
-
-def checks_for(article: str, panel: str) -> list[dict]:
-    return [c for c in CHECKED_SPATIAL_ONLY if (article, panel) in c["panels"]]
 
 
 def corrections_for(article: str, panel: str) -> list[dict]:

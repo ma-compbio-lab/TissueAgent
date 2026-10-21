@@ -800,18 +800,6 @@ button.rp-thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 
 .rp-bars li.has-note:hover .rp-bar-label, .rp-bars li.has-note:focus-visible .rp-bar-label { color: var(--ink); text-decoration-color: var(--blue); }
 .rp-bars li.has-note:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
 
-/* Explanation of how the statistics labels were made */
-.rp-label-note { margin-bottom: 26px; }
-.rp-label-note > p { font-size: 0.86rem; line-height: 1.7; color: var(--ink-3); }
-.rp-label-note > p strong { color: var(--ink-2); font-weight: 600; }
-.rp-label-details { margin-top: 12px; }
-.rp-label-details summary { width: fit-content; font-size: 0.84rem; font-weight: 500; color: var(--blue); cursor: pointer; }
-.rp-label-details summary:hover { text-decoration: underline; }
-.rp-label-details .paper-results-table-wrap { margin-top: 10px; }
-.rp-label-details .paper-results-table { font-size: 0.78rem; }
-.rp-label-details .paper-results-table td, .rp-label-details .paper-results-table th { vertical-align: top; }
-.rp-label-details .paper-results-table td:nth-child(2), .rp-label-details .paper-results-table td:nth-child(3) { text-align: left; }
-
 /* Compare dialog */
 .rp-dialog {
   width: min(1480px, 96vw); max-width: none; max-height: 94vh; margin: auto; padding: 0;
