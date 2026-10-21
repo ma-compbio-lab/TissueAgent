@@ -791,6 +791,15 @@ button.rp-thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 
 .rp-stat.is-drawn .rp-bar-track i { width: var(--w); }
 .rp-stat-total { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.76rem; color: var(--ink-3); }
 
+/* Bars with a hover explanation */
+.rp-bars li.has-note { cursor: help; border-radius: 6px; }
+.rp-bars li.has-note .rp-bar-label {
+  text-decoration: underline dotted var(--ink-4); text-decoration-thickness: 1px; text-underline-offset: 3px;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+.rp-bars li.has-note:hover .rp-bar-label, .rp-bars li.has-note:focus-visible .rp-bar-label { color: var(--ink); text-decoration-color: var(--blue); }
+.rp-bars li.has-note:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+
 /* Explanation of how the statistics labels were made */
 .rp-label-note { margin-bottom: 26px; }
 .rp-label-note > p { font-size: 0.86rem; line-height: 1.7; color: var(--ink-3); }
@@ -841,8 +850,10 @@ button.rp-thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 
   border-radius: var(--r-sm); background: var(--ink); color: #fff;
   font-size: 0.78rem; line-height: 1.5; pointer-events: none; box-shadow: var(--shadow-md);
 }
+.rp-tip.is-note { max-width: min(340px, calc(100vw - 16px)); }
 .rp-tip strong { display: block; margin-bottom: 2px; font-size: 0.84rem; }
 .rp-tip span { display: block; color: #c9cee0; font-variant-numeric: tabular-nums; }
+.rp-tip.is-note span { font-variant-numeric: normal; }
 
 @media (max-width: 900px) {
   .rp-stat-grid { column-count: 1; }
