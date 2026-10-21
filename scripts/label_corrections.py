@@ -4,7 +4,11 @@ BioFigBench's statistics label each panel's spatial technology and auxiliary dat
 (platform names, "scRNA-seq", "H&E", ...) against the panel's data records and, if those say nothing, its
 caption and methods. The paper title is not read, and a dataset that is described by its name or accession
 ("PDAC-A ST1", "V1_Mouse_Brain_Sagittal_Anterior") rather than by its platform matches nothing, so the
-panel falls into "Other / unspecified" or "None identified".
+panel falls into "Other / unspecified" or "None identified". The reverse also happens: the
+legacy Spatial Transcriptomics rule matches the plain phrase "spatial transcriptomics", so a paper that says
+"10X Visium for FFPE spatial transcriptomics" gets tagged with the original ST platform by mistake, and a
+panel whose methods mention Visium for other datasets can be tagged Visium although its own data are ST.
+A correction therefore either adds a label ("to"), removes a wrong one ("remove"), or both.
 
 A data type counts for a panel when the panel's own caption or methods name it (or its data records do).
 Derived results that only exist upstream of the panel do not count. The entries below fix the cases where
@@ -85,6 +89,38 @@ CORRECTIONS = [
         "reason": (
             "The records are 10x Genomics 'V1_Mouse_Brain_Sagittal' sample files (filtered_feature_bc_matrix, "
             "spatial bundle, tissue image), the Visium output format; the word 'Visium' does not appear."
+        ),
+    },
+    {
+        "field": "technologies",
+        "to": ST,
+        "remove": VISIUM,
+        "panels": [
+            ("s41587-021-00935-2", "Fig_3c"),
+            ("s41587-021-00935-2", "Fig_3d"),
+            ("s41587-021-00935-2", "Fig_3e"),
+        ],
+        "reason": (
+            "The panel's data record is the 'Melanoma ST count/coordinate archive' (sample ST_mel1_rep2), the older "
+            "microarray-based ST platform. The methods mention Visium only for the paper's other datasets (Fig. 2c, 4b, 5b)."
+        ),
+    },
+    {
+        "field": "technologies",
+        "remove": ST,
+        "panels": [
+            ("s41551-025-01437-1", "Extended_Data_Fig_10c"),
+            ("s41551-025-01437-1", "Extended_Data_Fig_3b"),
+            ("s41551-025-01437-1", "Extended_Data_Fig_7b"),
+            ("s41551-025-01437-1", "Extended_Data_Fig_9"),
+            ("s41551-025-01437-1", "Fig_3c"),
+            ("s41551-025-01437-1", "Fig_5b"),
+            ("s41551-025-01437-1", "Fig_7a"),
+        ],
+        "reason": (
+            "The methods name the platform as '10X Visium for FFPE spatial transcriptomics' (Visium FFPE or CytAssist on "
+            "H&E-imaged sections). The rule matched the generic phrase 'spatial transcriptomics' and added the original ST "
+            "platform by mistake; Visium is the correct label."
         ),
     },
     {
@@ -193,11 +229,14 @@ def apply(article: str, panel: str, technologies: list[str], modalities: list[st
     labels = {"technologies": list(technologies), "modalities": list(modalities)}
     changes = []
     for correction in corrections_for(article, panel):
-        field, new = correction["field"], correction["to"]
+        field, new, remove = correction["field"], correction.get("to"), correction.get("remove")
         before = list(labels[field])
-        if new in before:
+        after = [x for x in before if x != remove]
+        if new and new not in after:
+            after = [x for x in after if x != _PLACEHOLDER[field]] + [new]
+        after = after or [_PLACEHOLDER[field]]
+        if after == before:
             continue
-        after = [x for x in before if x != _PLACEHOLDER[field]] + [new]
         labels[field] = after
         changes.append(
             {

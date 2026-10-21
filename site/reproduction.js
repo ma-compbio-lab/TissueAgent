@@ -80,8 +80,12 @@
 
   const tip = $("[data-rp-tip]");
 
-  function showTip(target, title, lines) {
+  function showTip(target, title, lines, note = false) {
     tip.replaceChildren(el("strong", null, title), ...lines.map((l) => el("span", null, l)));
+    tip.classList.toggle("is-note", note);
+    // Measure from the corner, so the old position cannot squeeze the new text.
+    tip.style.left = "0px";
+    tip.style.top = "0px";
     tip.hidden = false;
     const r = target.getBoundingClientRect();
     const t = tip.getBoundingClientRect();
@@ -97,6 +101,30 @@
     tip.hidden = true;
   };
   window.addEventListener("scroll", hideTip, { passive: true });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") hideTip();
+  });
+  // A tap on a touch screen has no hover, so a note stays until the next tap elsewhere.
+  document.addEventListener("pointerdown", (e) => {
+    if (!e.target.closest("[data-rp-note]")) hideTip();
+  });
+
+  /** Make `item` show an explanation on hover, keyboard focus, or tap; the tooltip sits under `anchor`. */
+  function attachNote(item, anchor, title, lines) {
+    const show = () => showTip(anchor, title, lines, true);
+    item.dataset.rpNote = "";
+    item.tabIndex = 0;
+    item.classList.add("has-note");
+    item.addEventListener("pointerenter", (e) => {
+      if (e.pointerType === "mouse") show();
+    });
+    item.addEventListener("pointerleave", (e) => {
+      if (e.pointerType === "mouse") hideTip();
+    });
+    item.addEventListener("focus", show);
+    item.addEventListener("blur", hideTip);
+    item.addEventListener("click", show);
+  }
 
   /* ---- box plots ---- */
 
@@ -241,6 +269,69 @@
   const byCount = (a, b) =>
     LAST.has(a.label) - LAST.has(b.label) || b.count - a.count || a.label.localeCompare(b.label);
 
+  /* Short explanations shown when hovering a bar. Keyed by the label as displayed. The task types paraphrase
+     the benchmark's category names and the panels in them; the technology and data-type entries describe the
+     method or data in general terms. */
+  const GLOSSARY = {
+    task: {
+      "Spatial Gene Expression Maps": "Tissue plots coloured by the expression of particular genes or gene modules, showing where they are active.",
+      "Dimensionality Reduction / Clustering / Spatial Domains": "Embeddings and clusterings of cells or spots (for example UMAP), and maps of the spatial domains they define.",
+      "Deconvolution / Cell Type Localization": "Estimating the cell-type mix of each spot or region, or placing single-cell types at positions in the tissue.",
+      "Neighborhood / Tissue Structure": "Which cell types or domains sit next to each other: contact maps, interaction frequencies, and layer or niche composition.",
+      "Multi-Sample / Multi-Slice": "Analyses that span several tissue sections or samples, such as aligning them, analysing them jointly, or comparing conditions.",
+      "Spatial Gradients / Axes / Trajectories": "Expression or cell composition that changes along a direction, such as cortical depth, the anterior–posterior axis, or a differentiation path.",
+      Multimodal: "Panels that combine the spatial expression with another kind of data in the same analysis, such as protein co-detection or H&E image features.",
+      "QC / Technical Quality": "Panels that check how well a measurement worked, for example by comparing it with another method or looking at technical features.",
+      "Spatially Variable Genes (SVGs)": "Genes whose expression varies across the tissue in a structured way, and the patterns or modules they form.",
+      Subcellular: "Panels at the scale of single molecules or parts of a cell, such as detected transcripts or allele-specific signals in situ.",
+      "Cell-Cell Communication": "Ligand–receptor interactions between neighbouring cells.",
+    },
+    technology: {
+      Visium: "10x Genomics' sequencing-based platform. Each 55 µm capture spot on the slide reads out the RNA of a few cells across the whole transcriptome.",
+      "Spatial Transcriptomics (legacy)":
+        "The original microarray-based platform (Ståhl et al., 2016), written “ST” in the papers: about 1,000 barcoded spots of 100 µm per slide. Visium replaced it, which is why it is called legacy. The label says nothing about data quality, and it is not the field name “spatial transcriptomics”.",
+      "MERFISH / MERSCOPE": "Imaging-based method (multiplexed error-robust FISH) that locates hundreds of genes in single cells. MERSCOPE is Vizgen's commercial instrument for it.",
+      "MiP-seq": "In situ pairwise sequencing, an imaging method: padlock probes, rolling-circle amplification, and sequencing by ligation read RNAs at subcellular resolution. Antibody tags can be read the same way.",
+      "seqFISH / smFISH / osmFISH": "Single-molecule FISH imaging methods that count individual RNA molecules inside cells, over many genes by repeated hybridization rounds (seqFISH) or a smaller targeted panel (smFISH, osmFISH).",
+      Xenium: "10x Genomics' imaging-based in situ platform. It reads a targeted gene panel at single-cell and subcellular resolution.",
+      "GeoMx / CosMx": "NanoString platforms. GeoMx profiles regions of interest chosen on a slide, not single cells; CosMx images molecules at single-cell resolution. The panels here use GeoMx data.",
+      "Slide-seq / Slide-RNA-seq": "Barcoded beads about 10 µm wide are laid on a slide and capture RNA from a tissue section, giving near single-cell resolution.",
+      "Stereo-seq": "A BGI (STOmics) chip of DNA nanoballs about 500 nm apart. It captures RNA at subcellular resolution over large fields of view.",
+      "Other / unspecified": "The data records and text name no platform from the list above.",
+    },
+    auxiliary: {
+      "Spatial data only": "Nothing besides the spatial measurement is named for this panel: no single-cell reference, image, or other data type.",
+      "Histology / H&E": "A stained image of the tissue (hematoxylin and eosin) used with the expression data.",
+      "scRNA-seq reference": "Single-cell RNA-seq data used as a reference, for example to annotate cell types or deconvolve spatial spots.",
+      "snRNA-seq reference": "Single-nucleus RNA-seq data used as a reference.",
+      "Genotype / phenotype": "Information about a genetic perturbation, mutation, or the resulting phenotype, paired with the expression data.",
+      "CODEX / spatial proteomics": "Multiplexed protein measurements in the tissue. In the MiP-seq panels, 30 antibody tags are read out alongside six mRNAs.",
+      "Immunofluorescence / protein imaging": "Fluorescence images of proteins, from antibody staining or marker channels such as DAPI and CD3.",
+      "Microscopy / source images": "Conventional microscopy images, for example in situ hybridization, that the panel is compared with, or the original source images.",
+      "Cell-type reference profiles": "Expression signatures of known cell types, not a single-cell dataset, used by deconvolution methods such as SpatialDecon.",
+      "Bulk RNA-seq": "RNA-seq of whole tissue samples, without spatial or single-cell resolution.",
+    },
+    source: {
+      Zenodo: "A general-purpose open repository for research data, run by CERN.",
+      "Publisher supplementary files": "Files attached to the paper on the journal's site, such as supplementary tables and Source Data.",
+      "10x Genomics": "10x Genomics' public dataset pages, which host example Visium and Xenium datasets.",
+      "NCBI GEO": "The Gene Expression Omnibus, a public functional-genomics repository run by the US National Center for Biotechnology Information.",
+      GitHub: "Code repositories that also carry data files.",
+      "Brain Image Library": "A public archive of brain microscopy data.",
+      Dryad: "An open repository for research data.",
+      "spatialresearch.org": "The data portal of the group behind the original Spatial Transcriptomics method, which shares ST datasets such as mouse olfactory bulb and breast cancer.",
+      "CRUK Cambridge Institute": "Data hosted by the Cancer Research UK Cambridge Institute.",
+      "Allen Institute": "The Allen Institute's public data portal for brain atlases.",
+      "Amazon S3": "Files in a public cloud-storage bucket.",
+      CNGB: "China National GeneBank's public database.",
+    },
+    figure: {
+      "Main figure": "A numbered figure in the body of the paper.",
+      "Extended Data figure": "A figure in the paper's Extended Data section, published online alongside the main text.",
+      "Supplementary figure": "A figure in the paper's Supplementary Information.",
+    },
+  };
+
   const drawObserver =
     !REDUCED_MOTION && "IntersectionObserver" in window
       ? new IntersectionObserver(
@@ -254,7 +345,8 @@
         )
       : null;
 
-  function statCard(host, title, note, rows, total) {
+  /** `describe(label)` returns the hover explanation for a bar (a string or a list of lines), or nothing. */
+  function statCard(host, title, note, rows, total, describe) {
     const card = el("div", "rp-card rp-stat");
     card.append(el("h5", null, title));
     if (note) card.append(el("p", "rp-stat-note", note));
@@ -265,7 +357,14 @@
       const head = el("div", "rp-bar-head");
       const value = el("span", "rp-bar-val");
       value.append(el("b", null, String(row.count)), document.createTextNode(` · ${((row.count * 100) / total).toFixed(1)}%`));
-      head.append(el("span", "rp-bar-label", row.label), value);
+      const label = el("span", "rp-bar-label", row.label);
+      head.append(label, value);
+      const text = describe && describe(row.label);
+      if (text) {
+        const lines = Array.isArray(text) ? text : [text];
+        attachNote(item, label, row.label, lines);
+        item.setAttribute("aria-label", `${row.label}: ${lines.join(" ")} ${plural(row.count, "panel")}.`);
+      }
       const track = el("div", "rp-bar-track");
       const fill = el("i");
       fill.style.setProperty("--w", `${((row.count / max) * 100).toFixed(1)}%`);
@@ -290,25 +389,34 @@
       (span ? `, published ${span}` : "") +
       ". Each panel has one task type. Spatial technology, auxiliary data, and raw-data source can have several " +
       "labels per panel, so their percentages can add up to more than 100%. Technology and auxiliary-data labels " +
-      "come from a rule-based reading of each panel's data records and text, with a few hand corrections explained below the charts.";
+      "come from a rule-based reading of each panel's data records and text, with a few hand corrections explained below the charts. " +
+      "Hover over a label, or tap it on a touch screen, to see what it means.";
 
     const kind = (p) => (/^Extended/i.test(p.label) ? "Extended Data figure" : /^Supp/i.test(p.label) ? "Supplementary figure" : "Main figure");
     const KIND_ORDER = ["Main figure", "Extended Data figure", "Supplementary figure"];
     const chrono = (a, b) => a.label.localeCompare(b.label);
     const panelPaper = (p) => p.paper;
 
-    statCard(host, "Task type", "One label per panel", tally(ctx.panels.map((p) => p.figureType)).sort(byCount), total);
-    statCard(host, "Spatial technology", "Several labels possible", tally(ctx.panels.map((p) => p.technologies)).sort(byCount), total);
-    statCard(host, "Auxiliary data", "Other data a panel draws on besides the spatial data. Several labels possible", tally(ctx.panels.map((p) => p.modalities)).sort(byCount), total);
-    statCard(host, "Raw-data source", "Where the raw data are hosted. Several possible", tally(ctx.panels.map((p) => p.dataSources)).sort(byCount), total);
-    statCard(host, "Journal", "", tally(ctx.panels.map((p) => panelPaper(p).journal)).sort(byCount), total);
-    statCard(host, "Publication year", "", tally(ctx.panels.map((p) => panelPaper(p).year)).sort(chrono), total);
+    const about = (group) => (label) => GLOSSARY[group][label];
+    // Journals and years have no definition; the hover shows how many papers and panels they stand for.
+    const papersWhere = (field) => (label) => {
+      const hit = papers.filter((p) => String(p[field]) === label);
+      return `${plural(hit.length, "paper")} · ${plural(hit.reduce((n, p) => n + p.panels.length, 0), "panel")}`;
+    };
+
+    statCard(host, "Task type", "What the panel shows. One label per panel", tally(ctx.panels.map((p) => p.figureType)).sort(byCount), total, about("task"));
+    statCard(host, "Spatial technology", "How the data were measured. Several labels possible", tally(ctx.panels.map((p) => p.technologies)).sort(byCount), total, about("technology"));
+    statCard(host, "Auxiliary data", "Other data a panel draws on besides the spatial data. Several labels possible", tally(ctx.panels.map((p) => p.modalities)).sort(byCount), total, about("auxiliary"));
+    statCard(host, "Raw-data source", "Where the raw data are hosted. Several possible", tally(ctx.panels.map((p) => p.dataSources)).sort(byCount), total, about("source"));
+    statCard(host, "Journal", "", tally(ctx.panels.map((p) => panelPaper(p).journal)).sort(byCount), total, papersWhere("journal"));
+    statCard(host, "Publication year", "", tally(ctx.panels.map((p) => panelPaper(p).year)).sort(chrono), total, papersWhere("year"));
     statCard(
       host,
       "Figure type",
       "",
       tally(ctx.panels.map(kind)).sort((a, b) => KIND_ORDER.indexOf(a.label) - KIND_ORDER.indexOf(b.label)),
-      total
+      total,
+      about("figure")
     );
 
     // Source papers, most panels first.
@@ -349,9 +457,11 @@
         "Spatial technology and auxiliary data are assigned by a keyword rule over each panel's data records and " +
           "text. The rule looks for platform and data-type names, not dataset names or the paper title, so a panel " +
           "whose data are described only by a name or accession (for example “PDAC-A ST1”) can come out as " +
-          "“Other / unspecified” or “Spatial data only” even though its records settle the answer. " +
+          "“Other / unspecified” or “Spatial data only” even though its records settle the answer. The rule can also " +
+          "over-match: the plain phrase “spatial transcriptomics” is not the original Spatial Transcriptomics platform, " +
+          "and a methods section that mentions Visium for other datasets does not make a panel a Visium panel. " +
           (changes.length
-            ? `We checked the panels the rule left at those two labels and corrected the ${changes.length} cases where the panel's own records, caption, or methods name the platform or data type; they are listed below. `
+            ? `We checked the panels left at the two placeholder labels, and every panel's technology label against its data records, and corrected the ${changes.length} cases where the panel's own records, caption, or methods say otherwise; they are listed below. `
             : "") +
           "“Spatial data only” means nothing besides the spatial data is named for that panel. Reference-free " +
           "deconvolution, for instance, uses no single-cell reference, and a result that only builds on an earlier " +
