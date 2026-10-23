@@ -1,6 +1,7 @@
 """FastAPI application entry-point for TissueAgent.
 
-Compiles the LangGraph agent on startup, registers event queues, and mounts REST + WebSocket routes.
+Registers event queues and mounts REST + WebSocket routes. Compiles the LangGraph
+agent on startup when credentials are available, or before the first prompt.
 
 Run from the repo root with::
 
@@ -85,6 +86,16 @@ _kernel_client: KernelClient | None = None
 _settings_revision: int | None = None
 
 
+def _missing_provider_keys() -> list[str]:
+    """List credentials needed by the selected models, excluding local servers."""
+    missing = set()
+    for role, model_id in model_registry.get_selection().items():
+        spec = model_registry.get_model_spec(model_id, role=role)
+        if spec.provider != "local" and not model_registry.get_api_key(spec.provider):
+            missing.add(model_registry.PROVIDER_ENV_VAR[spec.provider])
+    return sorted(missing)
+
+
 def _compile_graph(
     kernel_client: KernelClient,
     domain_agents: list | None = None,
@@ -119,8 +130,15 @@ def _compile_graph(
 
 def ensure_graph_current() -> None:
     """Rebuild the graph if the model selection or agent settings changed."""
+    missing = _missing_provider_keys()
+    if missing:
+        raise ValueError(
+            f"Missing credentials: {', '.join(missing)}. Add the provider key in "
+            "Settings → Models & API keys, or export it before starting TissueAgent."
+        )
     if (
-        getattr(session, "model_revision", None) != model_registry.get_revision()
+        session.agent is None
+        or getattr(session, "model_revision", None) != model_registry.get_revision()
         or _settings_revision != agent_settings.get_revision()
     ):
         assert _kernel_client is not None, "kernel_client not initialized"
@@ -146,7 +164,7 @@ def set_kernel_workspace(path: Path, *, force_restart: bool = False) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: restore workspace state, compile graph, and register queues."""
+    """Restore state, register queues, and compile if credentials are available."""
     reset_data_directories()
     migrate_legacy_sessions()
     migrate_legacy_library_layout()
@@ -180,9 +198,16 @@ async def lifespan(app: FastAPI):
     # Compile the agent graph
     global _kernel_client
     _kernel_client = kernel_client
-    _compile_graph(kernel_client)
-
-    logging.info("TissueAgent graph compiled and ready.")
+    # Keep Settings accessible on a fresh installation with no exported key.
+    # The first prompt compiles the graph after the user saves credentials.
+    missing = _missing_provider_keys()
+    if missing:
+        session.agent = None
+        session.model_revision = None
+        logging.info("TissueAgent ready; configure %s in Settings to run analyses.", missing)
+    else:
+        _compile_graph(kernel_client)
+        logging.info("TissueAgent graph compiled and ready.")
     yield
 
     stop_r_backend()

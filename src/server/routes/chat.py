@@ -10,7 +10,6 @@ import logging
 import threading
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
-from datetime import datetime
 from typing import Optional
 
 import anthropic
@@ -31,7 +30,6 @@ from server.utils import (
     SUBAGENT_BADGES,
     SUBAGENT_DEFAULT_AVATAR,
     derive_session_title,
-    file_to_data_url,
     project_outputs_dir,
     save_session,
     upload_pdf_to_openai,
@@ -308,6 +306,20 @@ async def _handle_user_message(ws: WebSocket, data: dict):
         })
         return
 
+    # Validate credentials before uploads, title generation, or project changes.
+    # Missing setup should leave the connection open so Settings can fix it.
+    from server.main import ensure_graph_current
+
+    try:
+        ensure_graph_current()
+    except ValueError as e:
+        await ws.send_json({
+            "type": "run_error",
+            "error_type": "ModelConfigurationError",
+            "detail": str(e),
+        })
+        return
+
     text = data.get("text", "")
 
     # Build multimodal content parts.
@@ -399,10 +411,7 @@ async def _handle_user_message(ws: WebSocket, data: dict):
     except Exception as e:
         logging.warning(f"Auto-save (pre-run) failed: {e}")
 
-    # Rebuild the agent graph if the user changed the model since the last turn.
     logging.info("Invoking agent graph for user message (mode=%s).", session.mode)
-    from server.main import ensure_graph_current
-    ensure_graph_current()
 
     # First invocation of this turn: pass the current message state in.
     # Launched as a background task so the receive loop can still handle a

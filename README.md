@@ -13,12 +13,12 @@ TissueAgent is a role-based multi-agent framework that turns natural-language sp
 
 ## Execution Modes
 
-Choose the interaction mode in the Web UI's sidebar:
+Choose the interaction mode under **Settings → Execution mode** in the Web UI:
 
 - **Autopilot** (default): runs the full planning, recruitment, execution, evaluation, and reporting workflow without approval pauses. Notebook and CLI runs always use this mode.
 - **Copilot**: pauses after planning and again after recruitment so you can review the plan and agent assignments before execution.
 
-At each Copilot pause, the plan panel lets you **Approve** to continue, **Edit** the plan or agent assignments, **Send feedback** to return to planning, or **Cancel run** to start fresh. The selected mode persists with the session across reloads; finish or cancel the current run before changing modes.
+At each Copilot pause, the plan panel lets you **Approve** to continue, **Edit** the plan or agent assignments, **Send feedback** to return to planning, or **Cancel run** to start fresh. Choose the mode before sending a prompt. The selected mode is saved with the project.
 
 ![TissueAgent overview](docs/figures/tissueagent_overall_design.png)
 
@@ -139,9 +139,9 @@ export OPENROUTER_API_KEY="your-openrouter-api-key"
 | [Anthropic](https://console.anthropic.com/settings/keys) | `ANTHROPIC_API_KEY` | `claude-opus-4-7`, `claude-sonnet-4-6` |
 | [OpenRouter](https://openrouter.ai/keys) | `OPENROUTER_API_KEY` | `openrouter/gpt-5.1`, `openrouter/claude-sonnet-4-6` |
 
-In the Web UI, **sidebar → API keys** also accepts provider keys. These keys are held in server memory and override the corresponding environment values for that server. Separate notebook and CLI processes need their own environment keys. CellVoyager's subprocess also needs exported keys; see [External agents](#external-agents).
+In the Web UI, open **Settings → Models & API keys → API keys** to enter provider keys. The UI can start without an exported key; add one before sending an analysis request. These keys are held in server memory and override the corresponding environment values for that server. Separate notebook and CLI processes need their own environment keys. CellVoyager's subprocess also needs exported keys; see [External agents](#external-agents).
 
-Choose the model with `--model <id>` in the CLI, the demo notebook's `MODEL` setting where provided, or the UI's **Orchestration agents** and **Expert agents** dropdowns. The CLI flag selects both roles. In the UI, changing orchestration updates the expert model by default; **sync** re-links them after an independent change. Changes apply to the next request. The current model catalog, including self-hosted options, is defined in [`src/models.py`](src/models.py).
+Choose the model with `--model <id>` in the CLI, the demo notebook's `MODEL` setting where provided, or the **Orchestration Agents** and **Expert Agents** dropdowns under **Settings → Models & API keys**. The CLI flag selects both roles. In the UI, changing orchestration updates the expert model by default; **sync** re-links them after an independent change. Changes apply to the next request. The current model catalog, including self-hosted options, is defined in [`src/models.py`](src/models.py).
 
 ## Run TissueAgent
 
@@ -157,7 +157,7 @@ npm --prefix src/frontend run build
 PYTHONPATH=src python -m uvicorn server.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open **http://127.0.0.1:8000**. On later launches, only the last command is needed; rebuild after frontend source changes. The backend serves the UI when `src/frontend/dist/` exists.
+Wait for `Application startup complete`, then open **http://127.0.0.1:8000**. On later launches, only the last command is needed; rebuild after frontend source changes. The backend serves the UI when `src/frontend/dist/` exists.
 
 For frontend development with hot reload, install frontend dependencies as above and run these in two terminals:
 
@@ -173,7 +173,7 @@ npm --prefix src/frontend run dev -- --host 127.0.0.1
 
 Open **http://127.0.0.1:5173**. The development frontend proxies API and WebSocket traffic to port 8000.
 
-Choose **Autopilot** or **Copilot** in the sidebar; see [Execution Modes](#execution-modes) for the review and approval controls.
+Choose **Autopilot** or **Copilot** under **Settings → Execution mode**; see [Execution Modes](#execution-modes) for the review and approval controls.
 
 ### Notebook
 
@@ -196,6 +196,14 @@ See [Examples and outputs](#examples-and-outputs) and the [demo guide](demo/READ
 ### CLI
 
 The installed `tissueagent` command runs the full workflow on one prompt. It streams the agent trace to stderr and writes the answer to stdout.
+
+For a small connectivity check after configuring credentials:
+
+```bash
+tissueagent --quiet "Reply with exactly TISSUEAGENT_READY."
+```
+
+This makes a model call and should print `TISSUEAGENT_READY`. For analysis runs, replace the example paths below with your own existing input files:
 
 ```bash
 # Stage your dataset and save a structured response.

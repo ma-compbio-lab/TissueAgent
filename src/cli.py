@@ -173,10 +173,10 @@ def _drain_trace(
         tool_calls = getattr(msg, "tool_calls", None) or []
         header = f"{prefix}[{name}]"
         if text:
-            print(f"{header} {text}", flush=True)
+            print(f"{header} {text}", file=sys.stderr, flush=True)
         for tc in tool_calls:
             args = ", ".join(tc.get("args", {}) or [])
-            print(f"{prefix}  → {tc.get('name')}({args})", flush=True)
+            print(f"{prefix}  → {tc.get('name')}({args})", file=sys.stderr, flush=True)
 
     while not (stop_event.is_set() and queue.empty()):
         try:
@@ -843,7 +843,7 @@ def run(prompt: str, args: argparse.Namespace) -> dict:
 
     from config import RECURSION_LIMIT
     from server.session_manager import _new_thread_id
-    from server.utils import stringify_chat_content
+    from server.utils import split_route_and_body, stringify_chat_content
 
     session = _bootstrap(args)
 
@@ -969,6 +969,9 @@ def run(prompt: str, args: argparse.Namespace) -> dict:
             session.agent_state = result
             final = result["messages"][-1] if result["messages"] else None
             answer = stringify_chat_content(getattr(final, "content", "")) if final else ""
+            # The planner's DIRECT/CLARIFY header is routing metadata. Match
+            # the Web UI by returning only the user-facing body.
+            _, answer = split_route_and_body(answer)
         else:
             answer = ""
 
@@ -1006,7 +1009,7 @@ def run(prompt: str, args: argparse.Namespace) -> dict:
         )
 
         if not (args.quiet or args.json):
-            print(f"\n--- done in {elapsed:.1f}s ---", flush=True)
+            print(f"\n--- done in {elapsed:.1f}s ---", file=sys.stderr, flush=True)
 
         return {
             "answer": answer.strip(),
@@ -1060,7 +1063,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2))
     else:
         if not args.quiet:
-            print("\n=== Final Answer ===\n", end="")
+            print("\n=== Final Answer ===\n", end="", file=sys.stderr)
         print(result["answer"])
     return 0
 
