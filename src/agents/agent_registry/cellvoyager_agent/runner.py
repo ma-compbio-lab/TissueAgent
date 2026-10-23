@@ -8,23 +8,23 @@ the way the upstream is intended to be run.
 
 The subprocess:
   - Sets CWD to the pinned upstream submodule (so its relative paths resolve).
-  - Writes the biological-background text to a temp `.txt` file.
-  - Invokes `python run_cellvoyager.py` with `--execution-mode legacy` (no
-    Jupyter / Streamlit needed for headless integration).
-  - Routes outputs to `data/cellvoyager_agent/<request_id>/`.
-  - After completion, parses the generated `.ipynb` and any `analysis_*.json`
-    summaries CellVoyager writes, and returns a structured dict.
+  - Writes the biological-background text into the run directory.
+  - Uses TissueAgent's Python interpreter with `--execution-mode legacy`.
+  - Pins the analysis kernel to that same interpreter through a run-local
+    Jupyter kernelspec; no separately activated environment is needed.
+  - Routes outputs to `workspace/cellvoyager_agent/<request_id>/`.
+  - Parses generated notebooks and returns a structured result.
 
-The pinned model is read from `manifest.yaml` (`llm.pinned_model`) but a
-caller can override via `model_name=`.
+The model follows the available provider credentials unless the caller
+overrides it via `model_name=`.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import shutil
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -36,13 +36,6 @@ from config import DATA_DIR
 _HERE = Path(__file__).resolve().parent
 _UPSTREAM_DIR = _HERE / "upstream"
 _CLI_SCRIPT = _UPSTREAM_DIR / "run_cellvoyager.py"
-
-_DEFAULT_MODEL = "claude-sonnet-4-6"
-# Upstream pins litellm + instructor, both of which require openai >= 2.0;
-# TissueAgent pins langchain-openai == 0.3.10 which requires openai < 2.0.
-# Resolve the conflict by running CellVoyager in its own conda env. Create
-# it once with `conda env create -n cellvoyager -f <upstream>/environment.yml`.
-_CELLVOYAGER_ENV = "cellvoyager"
 
 
 def _check_upstream() -> None:
@@ -58,31 +51,52 @@ def _check_upstream() -> None:
         )
 
 
-def _check_isolated_env() -> None:
-    """Verify the `cellvoyager` conda env exists and can import the upstream."""
-    if shutil.which("conda") is None:
-        raise RuntimeError(
-            "`conda` not found on PATH. CellVoyager runs in an isolated conda "
-            "env to avoid an openai>=2.0 dependency conflict with the rest of "
-            "TissueAgent."
-        )
+def _check_environment() -> None:
+    """Verify the active TissueAgent interpreter can import the upstream."""
     # The upstream isn't a pip-installed package; it's a folder containing a
     # `cellvoyager` directory. Python finds it via cwd lookup, so we run the
     # probe with cwd set to the upstream directory (matches how the real
     # subprocess below invokes it).
     probe = subprocess.run(
-        ["conda", "run", "-n", _CELLVOYAGER_ENV, "python", "-c", "import cellvoyager"],
+        [sys.executable, "-c", "import cellvoyager"],
         cwd=str(_UPSTREAM_DIR),
         capture_output=True,
         text=True,
         check=False,
+        timeout=60,
     )
     if probe.returncode != 0:
         raise RuntimeError(
-            f"Isolated env `{_CELLVOYAGER_ENV}` cannot import cellvoyager. "
-            f"Create it with `conda env create -n {_CELLVOYAGER_ENV} -f "
-            f"{_UPSTREAM_DIR}/environment.yml`. Probe stderr:\n{probe.stderr[-500:]}"
+            f"TissueAgent's Python ({sys.executable}) cannot import CellVoyager. "
+            "Update this environment from the repository root with "
+            "`uv sync --frozen` or `python -m pip install -e .`. "
+            f"Probe stderr:\n{probe.stderr[-500:]}"
         )
+
+
+def _subprocess_environment(run_dir: Path) -> dict[str, str]:
+    """Keep upstream Python commands and its notebook kernel in this environment."""
+    # Upstream requests the generic `python3` kernel. A user's global kernelspec
+    # can point at another environment, even when the CLI uses sys.executable.
+    # JUPYTER_PATH takes precedence without changing the user's kernel registry.
+    jupyter_dir = run_dir / "jupyter"
+    kernel_dir = jupyter_dir / "kernels" / "python3"
+    kernel_dir.mkdir(parents=True, exist_ok=True)
+    (kernel_dir / "kernel.json").write_text(
+        json.dumps({
+            "argv": [sys.executable, "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+            "display_name": "TissueAgent (CellVoyager)",
+            "language": "python",
+        }) + "\n",
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    for key, prefix in (
+        ("PATH", str(Path(sys.executable).parent)),
+        ("JUPYTER_PATH", str(jupyter_dir.resolve())),
+    ):
+        env[key] = prefix + (os.pathsep + env[key] if env.get(key) else "")
+    return env
 
 
 def _check_api_keys() -> None:
@@ -128,7 +142,7 @@ def _resolve_h5ad_path(h5ad_path: str) -> Path:
 
     Agents often pass container-style or workspace-relative paths
     (``/mnt/data/...``, ``/workspace/...``, ``library/datasets/foo.h5ad``).
-    CellVoyager runs on the host via conda, so those must be mapped onto
+    CellVoyager runs in the host's TissueAgent environment, so those must be mapped onto
     :data:`config.DATA_DIR`.
     """
     from config import DATA_DIR, DATASET_DIR
@@ -210,7 +224,7 @@ def run_cellvoyager_analysis(
           - returncode: subprocess exit code (0 = success)
     """
     _check_upstream()
-    _check_isolated_env()
+    _check_environment()
     _check_api_keys()
 
     h5ad_path_p = _resolve_h5ad_path(h5ad_path)
@@ -236,12 +250,10 @@ def run_cellvoyager_analysis(
     background_path = run_dir / "background.txt"
     background_path.write_text(background_text, encoding="utf-8")
 
-    # Invoke through the isolated `cellvoyager` env so the upstream's
-    # litellm/instructor (openai>=2.0) coexists with TissueAgent's pinned
-    # langchain-openai (openai<2.0).
+    # Use the exact interpreter running TissueAgent, regardless of shell PATH
+    # or whether the user installed with uv, pip, Conda, or Nix.
     cmd = [
-        "conda", "run", "-n", _CELLVOYAGER_ENV, "--live-stream",
-        "python", str(_CLI_SCRIPT),
+        sys.executable, str(_CLI_SCRIPT),
         "--h5ad-path", str(h5ad_path_p),
         "--paper-path", str(background_path),
         "--analysis-name", analysis_name,
@@ -260,7 +272,7 @@ def run_cellvoyager_analysis(
         cwd=str(_UPSTREAM_DIR),
         capture_output=True,
         text=True,
-        env={**os.environ},
+        env=_subprocess_environment(run_dir),
         check=False,
         timeout=14400,  # 4h hard cap for full-size ST (Nature Methods rebuttal: no subsample)
     )

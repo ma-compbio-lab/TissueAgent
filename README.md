@@ -1,8 +1,24 @@
 # TissueAgent: A Role-Based Multi-Agent Framework for Reproducible Spatial Transcriptomics Workflows
 
-TissueAgent turns natural-language spatial transcriptomics requests and inputs such as datasets, PDFs, and images into runnable analyses, figures, and reports. A shared plan coordinates planning, recruitment, execution, evaluation, and reporting, with saved step status and artifact links.
+## Project Overview
 
-Supported workflows include figure reproduction, cell-type annotation, cell–cell communication, differential expression, and deconvolution. Specialized external agents can be recruited for gene interpretation, genomics questions, and single-cell analysis.
+TissueAgent is a role-based multi-agent framework that turns natural-language spatial transcriptomics requests and inputs such as datasets, PDFs, and images into auditable, runnable analyses, figures, and reports. A shared, evolving plan coordinates specialized agents and records rationales, step status, and artifact links to support reproducibility and targeted replanning.
+
+## Key Features
+
+- **Specialized agent roles:** separate planning, recruitment, execution, evaluation, and reporting responsibilities coordinate multi-stage analyses.
+- **Traceable workflows:** a shared plan records decisions, progress, and generated artifacts so analyses can be inspected and revised.
+- **External-agent integration:** recruit **GeneAgent** to propose and verify biological processes for a gene set, **GeneGPT** for factual NCBI lookups and DNA sequence alignment, and **CellVoyager** for hypothesis generation and iterative exploratory analysis of single-cell datasets. See [External agents](#external-agents) for their inputs, outputs, and setup.
+- **Spatial transcriptomics workflows:** reproduce figures, annotate cell types, analyze cell–cell communication and differential expression, and perform deconvolution.
+
+## Execution Modes
+
+Choose the interaction mode in the Web UI's sidebar:
+
+- **Autopilot** (default): runs the full planning, recruitment, execution, evaluation, and reporting workflow without approval pauses. Notebook and CLI runs always use this mode.
+- **Copilot**: pauses after planning and again after recruitment so you can review the plan and agent assignments before execution.
+
+At each Copilot pause, the plan panel lets you **Approve** to continue, **Edit** the plan or agent assignments, **Send feedback** to return to planning, or **Cancel run** to start fresh. The selected mode persists with the session across reloads; finish or cancel the current run before changing modes.
 
 ![TissueAgent overview](docs/figures/tissueagent_overall_design.png)
 
@@ -38,7 +54,7 @@ PYTHONPATH=src python -m uvicorn server.main:app --host 127.0.0.1 --port 8000
 
 Open **http://127.0.0.1:8000**. Add a dataset through the Library, attach any project-specific reference files, and enter an analysis request. The [demo guide](demo/README.md) describes the included example inputs.
 
-The cloned submodules provide the external-agent source code. To enable CellVoyager as well, complete its [separate environment setup](#external-agents).
+The cloned submodules provide the external-agent source code. GeneAgent, GeneGPT, and CellVoyager all use the installed TissueAgent environment; see [External agents](#external-agents) for credentials and verification.
 
 ## Installation
 
@@ -57,7 +73,7 @@ git submodule update --init --recursive
 
 The repository's Python version is **3.12**. Choose one of the following methods; each supports the Web UI, notebooks, and CLI.
 
-**uv — recommended for the checked-in dependency versions**
+**uv**
 
 ```bash
 uv sync --frozen --python 3.12
@@ -157,14 +173,7 @@ npm --prefix src/frontend run dev -- --host 127.0.0.1
 
 Open **http://127.0.0.1:5173**. The development frontend proxies API and WebSocket traffic to port 8000.
 
-<a id="execution-modes"></a>
-
-The UI offers two interaction modes:
-
-- **Autopilot** (default): runs the full workflow without approval pauses.
-- **Copilot**: pauses after planning and recruitment. Approve, edit the plan or agent assignments, send feedback, or cancel from the plan panel.
-
-The mode persists with the session. Finish or cancel a run before changing modes. Notebook and CLI runs always use Autopilot.
+Choose **Autopilot** or **Copilot** in the sidebar; see [Execution Modes](#execution-modes) for the review and approval controls.
 
 ### Notebook
 
@@ -220,30 +229,34 @@ Use `tissueagent --help` for all flags. CLI runs are saved as projects and appea
 
 ## External agents
 
-| Agent | Purpose | Environment and credentials |
+The Recruiter can assign these three external agents to analysis steps. Their capabilities below reflect the adapters included in this repository.
+
+| Agent | Inputs, function, and outputs | Environment and credentials |
 | --- | --- | --- |
-| [GeneAgent](https://github.com/ncbi-nlp/GeneAgent) | Interpret a gene set with evidence from biological databases | TissueAgent environment; `OPENAI_API_KEY`; pinned `gpt-5.1` |
-| [GeneGPT](https://github.com/ncbi/GeneGPT) | Answer factual genomics questions through NCBI E-utilities and BLAST | TissueAgent environment; `OPENAI_API_KEY`; pinned `gpt-4o`; NCBI internet access |
-| [CellVoyager](https://github.com/zou-group/CellVoyager) | Analyze an AnnData dataset and produce a notebook and hypotheses | Separate `cellvoyager` Conda environment; exported `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` |
+| [GeneAgent](https://github.com/ncbi-nlp/GeneAgent) | Given a gene list, propose biological-process names and verify supporting claims against biological databases. Return a process-level narrative, extracted process names, and verification logs. The adapter uses at most the first 10 genes supplied. | TissueAgent environment; `OPENAI_API_KEY`; pinned `gpt-5.1` |
+| [GeneGPT](https://github.com/ncbi/GeneGPT) | Given a factual question, use NCBI E-utilities for gene symbols/aliases, genomic locations, and SNP–gene or gene–disease associations, or BLAST for DNA sequence alignment. Return the answer and an API-call trace. | TissueAgent environment; `OPENAI_API_KEY`; pinned `gpt-4o`; NCBI internet access |
+| [CellVoyager](https://github.com/zou-group/CellVoyager) | Given an AnnData (`.h5ad`) dataset and biological-context text, propose hypotheses and follow-up analyses, then execute and iteratively refine those analyses. Save generated notebooks with code, figures, and findings; return a notebook path and extracted candidate hypotheses. | TissueAgent environment; exported `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` |
 
-All three upstream sources are pinned submodules. `git clone --recurse-submodules` or `git submodule update --init --recursive` fetches them. GeneAgent and GeneGPT use the main environment's dependencies and require no separate pip installation; their adapters handle upstream API compatibility.
+All three upstream sources are pinned submodules. `git clone --recurse-submodules` or `git submodule update --init --recursive` fetches them. Their dependencies are included in the main TissueAgent installation; the adapters handle upstream API compatibility.
 
-To enable CellVoyager, have Conda available on the application's `PATH` and create its environment once, even if you installed TissueAgent with uv or Nix:
+For an existing installation, update the same environment using your installation method. With **uv** or **Nix + uv**:
 
 ```bash
-conda env create -n cellvoyager \
-  -f src/agents/agent_registry/cellvoyager_agent/upstream/environment.yml
+uv sync --frozen
 ```
 
-The lowercase name `cellvoyager` is required by the adapter. If that environment already exists, update it with `conda env update -n cellvoyager -f src/agents/agent_registry/cellvoyager_agent/upstream/environment.yml`. Keep the TissueAgent environment active when launching TissueAgent; the adapter invokes CellVoyager through `conda run`.
-
-Verify its import from the upstream directory:
+With **Conda + pip**, activate `tissueagent`, then run:
 
 ```bash
-(
-  cd src/agents/agent_registry/cellvoyager_agent/upstream
-  conda run -n cellvoyager python -c "import cellvoyager; print('CellVoyager OK')"
-)
+python -m pip install -e .
+```
+
+CellVoyager runs as a subprocess using the same Python interpreter as TissueAgent. Its analysis notebook kernel also uses that interpreter. Its `instructor` and `litellm` dependencies are installed with TissueAgent, so no separate CellVoyager Conda environment is needed.
+
+With the TissueAgent environment active, verify the upstream CLI imports successfully without making model calls:
+
+```bash
+python src/agents/agent_registry/cellvoyager_agent/upstream/run_cellvoyager.py --help
 ```
 
 CellVoyager uses `claude-sonnet-4-6` when an Anthropic environment key is available. With only an OpenAI environment key, the adapter selects `gpt-4o`. Its tool's `model_name` argument can override that choice. GeneAgent and GeneGPT retain their pinned models independently of TissueAgent's main model selection.
@@ -275,7 +288,6 @@ https://github.com/user-attachments/assets/ef381418-cf5c-431b-9052-f931c922d2c8
 | Figure reproduction with reference-label OCR | Tesseract executable on `PATH`; `pytesseract` is included in the Python dependencies. Check with `tesseract --version`. |
 | Local R skill steps | R with the IRkernel Jupyter kernel and the packages needed by the task |
 | Docker R skill steps | Docker installed and running; see [R kernel setup](DOCKER.md) |
-| CellVoyager | Its separate Conda environment and exported provider credentials, as described above |
 
 <a id="coding-sandbox"></a>
 
@@ -307,7 +319,7 @@ Set `TISSUEAGENT_STATE_ROOT` **before starting a process** to relocate its works
 | Frontend installation rejects the Node version | Check `node --version`; use Node.js 22.12 or later. |
 | Provider authentication fails | Export the relevant key before launching that process, or set it in the UI for that server. Keys entered in the UI do not configure separate notebook/CLI processes. |
 | An external-agent upstream directory is empty | Run `git submodule update --init --recursive` from the repository root. |
-| CellVoyager cannot import | Check `conda` is on `PATH`, the environment is named `cellvoyager`, and the import verification above passes. |
+| CellVoyager cannot import | Update dependencies in the active TissueAgent environment with `uv sync --frozen` or `python -m pip install -e .`, initialize the submodules, and run the CLI verification above. |
 | A Lohoff notebook rejects an existing output directory | Use the matching completed run or choose a new `OUTPUT_DIR`; preserve the previous run for comparison. |
 
 TissueAgent is a local, single-user application. The documented web commands bind to `127.0.0.1`; the API and WebSocket have no sign-in, so keep the server local. Uploads are limited to 8 GiB per file by default; set `TISSUEAGENT_MAX_UPLOAD_BYTES` before launching the server to change that limit.

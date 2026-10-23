@@ -40,6 +40,12 @@ dependencies = [
     "watchdog>=6.0.0",
     "anthropic>=0.125.0",
     "openai>=1.73.0",
+    # CellVoyager runs in this environment. These release ranges retain
+    # compatibility with the spatialdata/s3fs stack's botocore and urllib3.
+    "instructor>=1.14.5,<1.15",
+    "litellm>=1.80.16,<1.82",
+    "python-dotenv>=1.0.0,<2",
+    "jupyter-client>=8.0.0,<9",
     "nbformat>=5.10.4",
     # OCR for figure-reproduce: without it the reference-spec extractor can see
     # a legend's swatches but not its labels, so colors cannot be bound to

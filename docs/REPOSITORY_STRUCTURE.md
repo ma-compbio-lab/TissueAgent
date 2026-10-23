@@ -34,7 +34,7 @@ The coding worker in `src/agents/agent_registry/coding_agent/model.py` uses Deep
 | `src/frontend/package.json`, `src/frontend/package-lock.json` | Frontend scripts and dependencies |
 | `.gitmodules` | Pinned external-agent submodule locations |
 
-Adapters for **GeneAgent**, **GeneGPT**, and **CellVoyager** live under `src/agents/agent_registry/`. Each adapter's `upstream/` directory is a pinned Git submodule. Initialize these sources before using the integrations or running tests that depend on them. CellVoyager additionally requires its own Conda environment. See [external-agent setup](../README.md#external-agents) for installation and verification, and [INTEGRATING.md](../INTEGRATING.md) for adapter development.
+Adapters for **GeneAgent**, **GeneGPT**, and **CellVoyager** live under `src/agents/agent_registry/`. Each adapter's `upstream/` directory is a pinned Git submodule. Initialize these sources before using the integrations or running tests that depend on them. All three use the TissueAgent Python environment. CellVoyager launches its upstream CLI and analysis kernel with TissueAgent's interpreter; its dependencies are declared in `pyproject.toml`. See [external-agent setup](../README.md#external-agents) for installation and verification, and [INTEGRATING.md](../INTEGRATING.md) for adapter development.
 
 ## Generated state and outputs
 
