@@ -1,26 +1,66 @@
 # Repository structure
 
-This is the cleaned tree on `cleanup/deepagent-only`. The [file manifest](MIGRATION_MANIFEST.md) lists every retained path, and [migration notes](MIGRATION_NOTES.md) explain branch reconciliation and removals.
+For installation and interface choices, start with the [root README](../README.md). This guide maps the source code and generated runtime files.
 
-| Area | Paths | Purpose |
-| --- | ---: | --- |
-| `src/agents/` | 112 | Agent registry, prompts, tools, DeepAgent coding worker, and external-agent adapters |
-| `src/graph/` | 8 | LangGraph orchestration, state handling, routing, and UI events |
-| `src/server/` | 18 | FastAPI service, routes, sessions, persistence, usage tracking, and streaming |
-| `src/frontend/` | 57 | React/Vite interface and its frontend test |
-| `src/optimizer/` | 7 | Session-driven skill/plan optimizer and guardrails |
-| Other `src/` modules | 7 | CLI, model/provider selection, configuration, logging, and shared settings |
-| `benchmark/` | 259 | BioMysteryBench, Spatial CellBench, CCC optimizer, hypothesis-recovery fixtures, scoring, and references |
-| `demo/` | 70 | Example notebooks, small reference data, and hypothesis-recovery runner/scorer |
-| `knowledge/` | 52 | Domain skill cards and executable scripts, plans, and reference docs |
-| `tests/` | 29 | Python regression and integration checks |
-| `docs/`, `site/`, root docs | 21 | Architecture, integration, Docker/R, migration, and public site material |
-| Root support, `docker/`, `workspace/` | 14 | Dependency locks, environment definitions, Docker image, and empty workspace placeholders |
+## Source and documentation
 
-The main execution path is `src/cli.py` or `src/server/main.py` → `src/graph/graph.py` → agents in `src/agents/agent_defns.py` → an agent's tools. The coding worker is `src/agents/agent_registry/coding_agent/model.py`, built with DeepAgent. It uses `knowledge/skills/` through `src/agents/skills_workspace.py`. When a step is assigned `r-execution`, the R tool starts the gateway in `src/agents/agent_registry/coding_agent/kernel.py` on demand. Ordinary coding steps use DeepAgent's local shell execution and start no gateway.
+| Path | Purpose |
+| --- | --- |
+| `src/cli.py` | Installed `tissueagent` command and module entry point; also invoked by the Lohoff notebooks |
+| `src/server/` | FastAPI service, project persistence, routes, usage tracking, and streaming |
+| `src/frontend/` | React/Vite Web UI; its built `dist/` directory is served by the backend |
+| `src/graph/` | LangGraph workflow, state handling, routing, and UI events |
+| `src/agents/` | Agent definitions, prompts, tools, skill assignment, and external-agent adapters |
+| `src/optimizer/` | Session-driven skill and plan optimization with guardrails |
+| `src/config.py`, `src/models.py` | Runtime paths and settings, model catalog, and provider selection |
+| `knowledge/` | Domain plans, skill instructions, executable scripts, and reference documentation |
+| `demo/` | Example notebooks, reference inputs, and notebook utilities; see the [demo guide](../demo/README.md) |
+| `tests/` | Python regression and integration checks |
+| `docs/` | Architecture, workflow guides, and historical migration notes |
+| `site/` | Separate informational website |
+| `docker/` | Optional R kernel container image |
 
-The API serves the React app in `src/frontend/` and stores runtime data under `workspace/`. `workspace/library/` contains shared inputs; `workspace/project/` holds the active project's uploads and outputs. Parked projects live under the repository-root `projects/` directory. Only placeholder files are versioned there. The `site/` directory is a separate static informational site.
+The main execution path is `src/cli.py` or `src/server/main.py` → `src/graph/graph.py` → agents registered in `src/agents/agent_defns.py` → each agent's tools. All three user interfaces share this workflow.
 
-External adapters for CellVoyager, GeneAgent, and GeneGPT live under `src/agents/agent_registry/`. Each adapter's `upstream` path is a pinned git submodule, not vendored code. Their upstream trees must be initialized before running those integrations or their dependent tests.
+The coding worker in `src/agents/agent_registry/coding_agent/model.py` uses DeepAgent and local shell execution. Skills under `knowledge/skills/` are made available through `src/agents/skills_workspace.py`. When a step is assigned `r-execution`, the R tool starts the gateway in `src/agents/agent_registry/coding_agent/kernel.py` on demand. See [DOCKER.md](../DOCKER.md) for local and containerized R setup.
 
-`pyproject.toml` and `uv.lock` define the Python package; `src/frontend/package.json` and its lockfile define the web app. `flake.nix` and `environment.yml` provide alternative development environments. `docker/Dockerfile` supports the optional R kernel container. `README.md`, `INTEGRATING.md`, and `DOCKER.md` explain user setup and integration points.
+## Dependencies and external agents
+
+| File | Role |
+| --- | --- |
+| `pyproject.toml`, `uv.lock`, `.python-version` | Python package, locked dependencies, and Python version |
+| `environment.yml` | Conda environment for TissueAgent |
+| `flake.nix`, `flake.lock` | Nix development toolchain |
+| `src/frontend/package.json`, `src/frontend/package-lock.json` | Frontend scripts and dependencies |
+| `.gitmodules` | Pinned external-agent submodule locations |
+
+Adapters for **GeneAgent**, **GeneGPT**, and **CellVoyager** live under `src/agents/agent_registry/`. Each adapter's `upstream/` directory is a pinned Git submodule. Initialize these sources before using the integrations or running tests that depend on them. CellVoyager additionally requires its own Conda environment. See [external-agent setup](../README.md#external-agents) for installation and verification, and [INTEGRATING.md](../INTEGRATING.md) for adapter development.
+
+## Generated state and outputs
+
+By default, the state root is the repository root. Set `TISSUEAGENT_STATE_ROOT` before starting a process to relocate its mutable state; the source code and knowledge assets remain in the checkout.
+
+```text
+<state root>/
+├── workspace/
+│   ├── library/
+│   │   ├── datasets/       # shared reference datasets
+│   │   └── files/          # shared reference files
+│   ├── project/           # one active project
+│   │   ├── .project_id
+│   │   ├── .chat.json
+│   │   ├── uploads/       # project-specific inputs
+│   │   ├── outputs/       # generated artifacts
+│   │   └── skills/        # assigned skill snapshots
+│   └── notebook/          # process-wide notebook scratch
+├── projects/<id>/         # parked projects
+├── plan_scratch/          # in-flight plans
+├── logs/                  # runtime logs
+└── sessions/              # legacy session storage, migrated at startup
+```
+
+Agents access shared library inputs as read-only files. Switching projects parks the previous project outside `workspace/` and activates the selected one under `workspace/project/`. External-agent adapters also retain tool-specific artifacts; CellVoyager keeps its upstream runs under `workspace/cellvoyager_agent/`.
+
+The Lohoff notebooks configure an isolated state root inside each run directory. Figures 2b, 2d, and 2e retain reports, figures, tables, logs, executed notebook copies, and runtime state under `cached/`; figures 2a and 2c use `demo/outputs/`. Both directories are Git-ignored. Notebook backups are retained under `cached/notebook_backups/`. See the [demo guide](../demo/README.md#lohoff-figure-reproduction-inputs-and-outputs) for cache reuse and input validation.
+
+For state isolation, concurrent processes, and output locations, see [runtime configuration](../README.md#state-and-output-locations). Runtime files and retained demo results are generated locally; they are not required in a fresh clone.

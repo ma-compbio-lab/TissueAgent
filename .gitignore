@@ -39,6 +39,7 @@ src/frontend/dist/
 
 # Local data and generated demo output
 /data/
+/cached/
 /demo/outputs/
 /demo/data/*
 !/demo/data/reference_lohoff-2a.png

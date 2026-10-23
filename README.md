@@ -1,450 +1,332 @@
 # TissueAgent: A Role-Based Multi-Agent Framework for Reproducible Spatial Transcriptomics Workflows
 
-## Project Overview
+TissueAgent turns natural-language spatial transcriptomics requests and inputs such as datasets, PDFs, and images into runnable analyses, figures, and reports. A shared plan coordinates planning, recruitment, execution, evaluation, and reporting, with saved step status and artifact links.
 
-TissueAgent is a role-based multi-agent framework that turns open-ended natural-language ST requests and multimodal inputs (data, PDFs, images) into auditable, runnable workflows. A single evolving plan coordinates specialized agents and records rationales, step status, and artifact links, enabling transparent provenance and targeted replanning. By separating planning, recruitment, execution, evaluation, and reporting, TISSUEAGENT is designed to improve reliability across heterogeneous, multi-stage analyses.
+Supported workflows include figure reproduction, cell-type annotation, cell–cell communication, differential expression, and deconvolution. Specialized external agents can be recruited for gene interpretation, genomics questions, and single-cell analysis.
 
-## Key Features
+![TissueAgent overview](docs/figures/tissueagent_overall_design.png)
 
-- Role-based multi-agent design with explicit separation of planning, recruitment, execution, evaluation, and reporting.
-- A single evolving plan that tracks rationales, step status, and artifact links to support transparent provenance and targeted replanning.
-- Built-in collaboration with external specialized agents to extend capabilities for domain-specific tasks.
-- Support for diverse spatial transcriptomics workflows such as figure reproduction, cell type annotation, cell-cell communication, differential gene expression, and cell type deconvolution.
+**Getting started:** [Quick start](#quick-start) · [Installation](#installation) · [Credentials and models](#credentials-and-models) · [Run TissueAgent](#run-tissueagent) · [External agents](#external-agents) · [Examples and outputs](#examples-and-outputs) · [Advanced setup and troubleshooting](#advanced-setup-and-troubleshooting) · [Architecture](#architecture)
 
-![TISSUEAGENT overview figure](docs/figures/tissueagent_overall_design.png)
+Installation and interface are separate choices. Install the Python environment once, then use any of these interfaces:
 
-## Execution modes
+| Interface | Best suited to | Additional setup | Interaction |
+| --- | --- | --- | --- |
+| Web UI | Interactive analysis and project management | Build the frontend with Node.js/npm | Autopilot or Copilot |
+| Notebook | Running and adapting manuscript examples | Use the installed Python environment as the Jupyter kernel | Autopilot |
+| CLI | Terminal use and scripted runs | None beyond the Python environment | Autopilot |
 
-TissueAgent runs in one of two modes, controlled by a toggle in the web UI's sidebar:
+The shell examples below target macOS/Linux. Run commands from the repository root unless a block explicitly changes directory.
 
-- **Autopilot** *(default)* — the planner, recruiter, manager, evaluator, and reporter run end-to-end without pausing. This is the only mode available outside the web UI (notebook and CLI entry points always run autopilot).
-- **Copilot** — the run pauses after the planner finishes drafting the plan, and again after the recruiter assigns agents. At each pause the plan panel surfaces four actions:
-  - **Approve** to accept and continue,
-  - **Edit** to modify the plan markdown (or change per-step agent assignments) and resume,
-  - **Send feedback** to give free-text guidance that rewinds the run back to the planner,
-  - **Cancel run** to abort and start fresh.
+## Quick start
 
-Mode is persisted with the session and survives reloads. Switching modes mid-run is blocked — finish or cancel the current run first.
-
-## Project Structure
-
-```text
-TissueAgent/
-├── src/                                 # application source
-│   ├── agents/
-│   │   ├── planner_agent/
-│   │   ├── recruiter_agent/
-│   │   ├── manager_agent/
-│   │   ├── evaluator_agent/
-│   │   ├── reporter_agent/
-│   │   ├── agent_registry/              # domain/specialised agents and tools
-│   │   └── agent_tools.py               # shared file-access tools (glob/grep/read/write)
-│   ├── graph/                           # LangGraph workflow + state orchestration
-│   ├── server/                          # FastAPI backend, WebSocket, REST routes
-│   ├── frontend/                        # React + TypeScript frontend
-│   └── config.py                        # path constants & runtime settings
-├── knowledge/                           # prompt-time source material (importable as a package)
-│   ├── plans/                           # planner template library (.md)
-│   ├── skills/                          # agent skill snippets (.md)
-│   └── docs/                            # API docs the coding agent retrieves from
-├── workspace/                           # runtime data root (== DATA_DIR in code)
-│   ├── library/                         # persistent shared input — UI section "Library"
-│   │   ├── datasets/                    #   curated reference datasets
-│   │   └── files/                       #   persistent reference uploads (PDFs, notes, …)
-│   ├── project/                         # active project; agent-visible
-│   │   ├── .chat.json                   #   saved conversation and project metadata
-│   │   ├── .project_id                  #   active project's identifier
-│   │   ├── uploads/                     #   files attached to this project
-│   │   └── outputs/                     #   generated code and artifacts
-│   └── notebook/                        # process-wide notebook scratch
-├── projects/                            # parked projects, outside the agent-visible workspace
-│   └── <project_id>/                    #   .chat.json, uploads/, and outputs/
-├── plan_scratch/                        # in-flight plan markdown, outside workspace
-├── benchmark/                           # benchmark harnesses, fixtures, scores, and results
-├── demo/                                # notebooks, example inputs, and demo runners
-├── docs/                                # guides, migration notes, results, and figures
-├── site/                                # separate static informational site
-├── docker/                              # optional R kernel container
-├── tests/                               # Python regression and integration tests
-├── logs/                                # ignored runtime logs
-├── sessions/                            # legacy saves migrated to projects/ on startup
-├── pyproject.toml                       # Python project configuration
-├── environment.yml                      # Conda environment definition
-└── flake.nix                            # Nix development environment
-```
-
-The `projects/`, `plan_scratch/`, `logs/`, and `sessions/` directories are created as needed and are ignored by Git. Only the empty library placeholders under `workspace/` are versioned.
-
-### Runtime data layout
-
-| What you see in the UI | On-disk path | Persistence |
-| --- | --- | --- |
-| **Library → Datasets** | `workspace/library/datasets/` | persistent; shared across all projects |
-| **Library → Files** | `workspace/library/files/` | persistent; shared across all projects |
-| **Project files → uploads/** | `workspace/project/uploads/` | files attached to the active project |
-| **Project files → outputs/** | `workspace/project/outputs/` | generated artifacts for the active project |
-| Project list (sidebar) | `workspace/project/.chat.json` and `projects/<id>/.chat.json` | active and parked saved projects |
-| In-flight plan | `plan_scratch/` | temporary plan markdown outside the agent-visible workspace |
-
-Two roots that the agent treats differently:
-
-- **`library/` is read-only to agents.** Agents `read` from it freely, but `write_*` tools refuse paths inside `library/` — the library is the user's curated reference corpus, not a dumping ground for intermediates.
-- **`workspace/project/outputs/` holds generated artifacts.** The coding agent writes code, figures, and reports here so they surface in the Files panel. Switching projects parks the old project under `projects/<id>/` and moves the selected project into `workspace/project/`.
-
-## Repository set-up
-
-TissueAgent is a local, single-user application. The commands below bind the web
-server to `127.0.0.1`, so it is reachable only from the same computer. Its API
-and WebSocket do not require sign-in; do not expose the server on a network.
-The DeepAgent coding worker runs shell commands with the local user's permissions.
-Uploads are streamed and limited to 8 GiB per file by default. Set
-`TISSUEAGENT_MAX_UPLOAD_BYTES` before starting the server to change that limit.
-
-1. Clone the repository **with submodules** and `cd` into the local directory
-   ```bash
-   git clone --recurse-submodules https://github.com/ma-compbio/TissueAgent
-   cd TissueAgent
-   ```
-   If you already cloned without `--recurse-submodules`, initialize them manually:
-   ```bash
-   git submodule update --init --recursive
-   ```
-
-2. Set up your LLM credentials. See [LLM credentials](#llm-credentials) below for the full list of supported providers and models. At minimum, one provider key is required — by default that's `OPENAI_API_KEY`:
-   ```bash
-   export OPENAI_API_KEY="sk-..."
-   export ANTHROPIC_API_KEY="sk-ant-..."     # optional, for Claude models
-   export OPENROUTER_API_KEY="sk-or-..."     # optional, for OpenRouter
-   ```
-   You can also paste keys directly into the web UI (sidebar → **API keys**); UI values override env vars and stay in server memory until cleared.
-
-### Option A1: Using conda
-
-1. [Install Miniconda](https://docs.anaconda.com/miniconda/) or [Anaconda](https://www.anaconda.com/download) if you haven't already.
-
-2. Create the conda environment and install dependencies:
-   ```bash
-   conda env create -f environment.yml
-   conda activate tissueagent
-   pip install -e .       # installs Python deps from pyproject.toml
-   cd src/frontend
-   npm install            # installs React/TypeScript deps
-   cd ../..
-   ```
-
-3. Start the application (two terminals, both with `conda activate tissueagent`):
-   ```bash
-   # Terminal 1 — FastAPI backend
-   PYTHONPATH=$(pwd)/src uvicorn server.main:app --reload --reload-dir src --host 127.0.0.1 --port 8000
-
-   # Terminal 2 — React dev server (hot-reload)
-   cd src/frontend
-   npm run dev
-   ```
-
-4. Open **http://localhost:5173** in a web browser. The React dev server proxies API and WebSocket requests to the FastAPI backend automatically.
-
-#### Built frontend (single process)
+This path installs with **uv** and launches the Web UI. Have [Git](https://git-scm.com/), [uv](https://docs.astral.sh/uv/getting-started/installation/), and [Node.js 22.12+ with npm](https://nodejs.org/) available. For a Python-only workflow, follow [Installation](#installation) and then [Notebook](#notebook) or [CLI](#cli).
 
 ```bash
-conda activate tissueagent
-cd src/frontend && npm run build && cd ../.
-PYTHONPATH=$(pwd)/src uvicorn server.main:app --host 127.0.0.1 --port 8000
-```
-Open **http://127.0.0.1:8000**. FastAPI serves the built React app as static files.
-
-### Option A2: Using uv
-
-You will need to install the following manually:
-- **Python 3.12** — [python.org](https://www.python.org/downloads/) or your system package manager
-- **uv** — [docs.astral.sh/uv](https://docs.astral.sh/uv/)
-- **Node.js 22+** and **npm** — [nodejs.org](https://nodejs.org/)
-
-1. Install dependencies:
-   ```bash
-   uv sync              # creates .venv and installs Python deps
-   cd src/frontend
-   npm install           # installs React/TypeScript deps
-   cd ../..
-   ```
-
-2. Start the application (two terminals):
-   ```bash
-   # Terminal 1 — FastAPI backend
-   source .venv/bin/activate
-   PYTHONPATH=$(pwd)/src uvicorn server.main:app --reload --host 127.0.0.1 --reload-dir src --port 8000
-
-   # Terminal 2 — React dev server (hot-reload)
-   cd src/frontend
-   npm run dev
-   ```
-
-3. Open **http://localhost:5173** in a web browser.
-
-#### Built frontend (single process)
-
-```bash
+git clone --recurse-submodules https://github.com/ma-compbio/TissueAgent.git
+cd TissueAgent
+uv sync --frozen --python 3.12
 source .venv/bin/activate
-cd src/frontend && npm run build && cd ../..
-PYTHONPATH=$(pwd)/src uvicorn server.main:app --host 127.0.0.1 --port 8000
-```
-Open **http://127.0.0.1:8000**.
 
-### Option B: Using Nix
+# Default model credentials; alternatively enter the key in the Web UI.
+export OPENAI_API_KEY="your-openai-api-key"
 
-A Nix flake is provided that supplies Python 3.12, uv, Node.js 22, and npm.
-
-1. [Install Nix](https://nixos.org/download) if you haven't already.
-
-2. Enter the dev shell and install dependencies:
-   ```bash
-   nix develop          # drops you into a shell with python, uv, node, npm
-   uv sync              # creates .venv and installs Python deps
-   cd src/frontend
-   npm install          # installs React/TypeScript deps
-   cd ../..
-   ```
-
-3. Start the application (two terminals, both inside `nix develop`):
-   ```bash
-   # Terminal 1 — FastAPI backend
-   source .venv/bin/activate
-   PYTHONPATH=$(pwd)/src uvicorn server.main:app --reload --reload-dir src --host 127.0.0.1 --port 8000
-
-   # Terminal 2 — React dev server (hot-reload)
-   cd src/frontend
-   npm run dev
-   ```
-
-4. Open **http://localhost:5173** in a web browser. The React dev server proxies API and WebSocket requests to the FastAPI backend automatically.
-
-#### Built frontend (single process)
-
-```bash
-nix develop
-source .venv/bin/activate
-cd src/frontend && npm run build && cd ../..
-PYTHONPATH=$(pwd)/src uvicorn server.main:app --host 127.0.0.1 --port 8000
-```
-Open **http://127.0.0.1:8000**. FastAPI serves the built React app as static files.
-
-### Option C: Headless Mode
-
-No frontend is needed. Install Python dependencies using either conda or uv, then run TissueAgent directly from a Jupyter notebook.
-
-**Using conda:**
-```bash
-conda env create -f environment.yml
-conda activate tissueagent
-pip install -e .
+npm --prefix src/frontend ci
+npm --prefix src/frontend run build
+PYTHONPATH=src python -m uvicorn server.main:app --host 127.0.0.1 --port 8000
 ```
 
-**Using uv:**
-```bash
-uv sync
-```
+Open **http://127.0.0.1:8000**. Add a dataset through the Library, attach any project-specific reference files, and enter an analysis request. The [demo guide](demo/README.md) describes the included example inputs.
 
-See `demo/` for examples on how to invoke TissueAgent from a notebook.
+The cloned submodules provide the external-agent source code. To enable CellVoyager as well, complete its [separate environment setup](#external-agents).
 
-#### CLI
+## Installation
 
-TissueAgent ships a command-line entry point that runs the full
-planner → recruiter → manager → evaluator → reporter pipeline on a single
-prompt (always **autopilot** — copilot pauses are a web-UI feature). It streams
-the agent trace to stderr and prints the final answer to stdout.
+<a id="repository-set-up"></a>
 
-After `pip install -e .`, the `tissueagent` console script is available:
+### Clone or update an existing checkout
+
+If you followed the quick start, continue to [Credentials and models](#credentials-and-models). Otherwise clone the repository as shown above, or initialize submodules in an existing checkout:
 
 ```bash
-tissueagent "Summarize the cell types in library/datasets/overall_merfish.h5ad"
-```
-
-Or run the module directly without installing (from the repo root):
-
-```bash
-PYTHONPATH=$(pwd)/src python -m cli "your prompt here"
-```
-
-Flags:
-
-- `--no-docker` — use a local R kernel gateway for steps assigned the `r-execution` skill.
-- `--docker` — use Docker for R kernel steps.
-- `--quiet` / `-q` — suppress the streaming trace; print only the final answer.
-- `--model <id>` — override the model for both roles (e.g. `--model gpt-5.1`).
-- `--dataset <path>` — stage a reference dataset into `library/datasets/` before the
-  run; the agent reads it at `library/datasets/<name>`. Repeatable.
-- `--attach <path>` — stage a per-run file into the project's `uploads/`; the agent
-  reads it at `uploads/<name>`. Repeatable.
-- `--json` — emit a JSON object to stdout (`answer`, `project_id`, `elapsed`,
-  `artifacts`, `staged`) instead of plain text. Useful for scripting.
-- Pass `-` (or pipe via stdin) to read the prompt from stdin:
-  `echo "long prompt" | tissueagent -`
-
-Examples:
-
-```bash
-# Stage a dataset and run an analysis, capturing structured output:
-tissueagent --json --dataset ./my_sample.h5ad \
-  "Summarize the cell types in library/datasets/my_sample.h5ad"
-
-# Attach a per-run file the agent should read:
-tissueagent --attach ./markers.csv "Interpret the genes in uploads/markers.csv"
-```
-
-Set your API credentials first (see [LLM credentials](#llm-credentials)). Runs are
-saved as projects, so a CLI run also shows up in the web UI's project list.
-
-### Cell annotation reviewer benchmark
-
-The production Cell Annotator first gathers leakage-safe query/reference evidence and official
-CellTypist model descriptions, then chooses one of Harmony, CellTypist, or GPTCellType. All three
-backends preserve the query observation order and write a common `cell_annotation_*` output schema
-plus method-specific provenance.
-
-Production CellTypist support is installed by the standard `uv sync`. The direct benchmark's
-OmicVerse GPTCellType comparison remains an isolated optional dependency:
-
-```bash
-uv sync --frozen --extra cell-annotation-benchmarks
-```
-
-This installs only the versions pinned in `uv.lock`; the demo never installs packages at runtime.
-Biomni and SpatialAgent baselines use their own upstream environments to avoid dependency conflicts
-and expose configurable base models through the same benchmark runner/output path. See
-[`docs/cell_annotation_agent_baselines.md`](docs/cell_annotation_agent_baselines.md) for setup and
-[`demo/cell_annotation_benchmark.ipynb`](demo/cell_annotation_benchmark.ipynb) for the developing
-human heart, BCL, and Han mouse brain Stereo-seq quick/full demo. The guide also includes a
-saved-results plotting command that needs no API keys or expression data.
-The ovarian Seurat conversion additionally requires an existing R installation with
-Seurat and Matrix. Missing R packages are reported explicitly and are never installed by
-TissueAgent.
-
-> [!TIP]
-> The default model is GPT-5.5. To use another supported model, select it in the web UI or pass `--model <id>` to the CLI. The default model ID is defined in `src/models.py`.
-
-## Demo
-
-TissueAgent can be invoked in two ways:
-
-### Option 1: Through Web UI
-
-Start the backend server:
-```bash
-PYTHONPATH=$(pwd)/src uvicorn server.main:app --host 127.0.0.1 --port 8000
-```
-
-**Web UI Demo:**
-
-https://github.com/user-attachments/assets/ef381418-cf5c-431b-9052-f931c922d2c8
-
-### Option 2: From Notebooks
-
-Notebook-based demos are available in `demo/` and can be run end-to-end to reproduce manuscript tasks.
-
-**Run a demo:**
-
-1. Complete repository setup above and activate the environment
-
-2. Export your LLM credentials (see [LLM credentials](#llm-credentials) for the full list):
-   ```bash
-   export OPENAI_API_KEY="sk-..."
-   export ANTHROPIC_API_KEY="sk-ant-..."     # optional, for Claude models
-   export OPENROUTER_API_KEY="sk-or-..."     # optional, for OpenRouter
-   ```
-3. Launch Jupyter:
-   ```bash
-   jupyter notebook
-   ```
-4. Open and run a notebook from top to bottom.
-
-**Available notebooks:**
-
-- `demo/figure_recreation_lohoff-2a.ipynb`: atlas and seqFISH figure reproduction from published joint UMAP coordinates and labels; inputs and provenance are included in `demo/data/`
-- `demo/figure_recreation_lohoff-2b.ipynb`: figure reproduction workflow demo 1
-- `demo/figure_recreation_lohoff-2e.ipynb`: figure reproduction workflow demo 2
-- `demo/spot_deconvolution_visium_heart.ipynb`: cell-type deconvolution task
-
-Outputs are written to `workspace/` and copied into `demo/outputs/{TASK}`. Execution transcripts are saved to `demo/outputs/{TASK}/transcript.log`.
-
-See `demo/README.md` for more details.
-
-## LLM credentials
-
-TissueAgent supports different providers. You only need a key for the providers whose models you intend to use. At least one provider key must be available before the agent can run.
-
-You can supply keys in two ways:
-
-- **Environment variable** (recommended for headless or notebook use). Export the variables listed below before launching the server or notebook.
-- **Through the web UI**: open the sidebar → **API keys** and paste a key per provider. UI-typed keys are held in server memory only, override the matching env var while set, and can be cleared from the same UI.
-
-| Provider | Get a key | Environment variable | Default model | Other supported models |
-|---|---|---|---|---|
-| **OpenAI** | https://platform.openai.com/api-keys | `OPENAI_API_KEY` | `gpt-5.5` *(global default)* | `gpt-5.4`, `gpt-5.1`, `gpt-5`, `gpt-5-mini` |
-| **Anthropic** | https://console.anthropic.com/settings/keys | `ANTHROPIC_API_KEY` | `claude-opus-4-7` | `claude-sonnet-4-6` |
-| **OpenRouter** | https://openrouter.ai/keys | `OPENROUTER_API_KEY` | `openrouter/gpt-5.1` | `openrouter/gpt-5.4`, `openrouter/gpt-5`, `openrouter/gpt-5-mini`, `openrouter/claude-opus-4-7`, `openrouter/claude-sonnet-4-6` |
-
-
-**Model selection.** The UI exposes two dropdowns in the sidebar:
-
-- **Orchestration agents** — the planner / recruiter / manager / evaluator / reporter
-- **Expert agents** — the worker sub-agents (coding, hypothesis, single-cell, etc.)
-
-Changing the orchestration model also updates the expert model by default; click **sync** next to the Expert dropdown to re-link them after you've changed it independently. Model changes take effect on your next message.
-
-## Coding sandbox
-
-The coding agent runs shell commands locally. Steps assigned the `r-execution` skill can run R in a local or Docker kernel gateway; see [`DOCKER.md`](DOCKER.md).
-
-## External agents
-
-TissueAgent integrates third-party research agents through a thin adapter layer: each is wrapped as a folder under `src/agents/agent_registry/<agent_id>/` whose upstream source is pinned as a git submodule and exposed to the manager as a single tool. The following external agents ship with TissueAgent:
-
-| Agent | Upstream | What it does | Credentials / requirements |
-|---|---|---|---|
-| **GeneAgent** | [ncbi-nlp/GeneAgent](https://github.com/ncbi-nlp/GeneAgent) | Interprets a gene list and returns a biological-process narrative verified against GO/KEGG/NCBI/PubMed | `OPENAI_API_KEY` (pinned to `gpt-5.1`) |
-| **CellVoyager** | [zou-group/CellVoyager](https://github.com/zou-group/CellVoyager) | Autonomous single-cell analysis of an `.h5ad` dataset; proposes and executes analyses, producing a Jupyter notebook + hypotheses | `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`; runs in an isolated `cellvoyager` conda env |
-| **GeneGPT** | [ncbi/GeneGPT](https://github.com/ncbi/GeneGPT) | Answers factual genomics questions through live NCBI E-utilities and BLAST calls, including gene aliases, genomic locations, SNP associations, and sequence alignment | `OPENAI_API_KEY` (pinned to `gpt-4o`); internet access to NCBI |
-
-### Installing the upstream code
-
-Every external agent's source is included as a git submodule pinned to a tested upstream commit. The standard `git clone --recurse-submodules ...` from the [repository set-up](#repository-set-up) section fetches them all automatically. If you cloned without `--recurse-submodules`, run:
-
-```bash
+git submodule sync --recursive
 git submodule update --init --recursive
 ```
 
-This populates each `src/agents/agent_registry/<agent_id>/upstream/` directory. TissueAgent imports the upstream code through its adapter. GeneAgent and GeneGPT need no extra pip install; CellVoyager has the one-time environment setup below.
+### Choose one Python environment
 
-**Verify the submodules are present:**
+The repository's Python version is **3.12**. Choose one of the following methods; each supports the Web UI, notebooks, and CLI.
+
+**uv — recommended for the checked-in dependency versions**
 
 ```bash
-git submodule status
-# each line should show a commit SHA (not prefixed with '-') next to its path
+uv sync --frozen --python 3.12
+source .venv/bin/activate
 ```
 
-If any are missing, re-run the `git submodule update` command above.
+This installs the project and dependencies from `uv.lock`. Reactivate `.venv` in each new Python terminal, or use `uv run --frozen` before a command.
 
-### Per-agent setup and notes
+**Conda + pip**
 
-- **GeneAgent** always calls **OpenAI `gpt-5.1`** regardless of TissueAgent's model selection, so its published cascade behavior stays reproducible. No extra install. Requires `OPENAI_API_KEY` (env var or the web UI's *API keys* panel).
+Install [Miniconda](https://docs.anaconda.com/miniconda/) if Conda is not already available.
 
-- **GeneGPT** answers individual factual genomics questions using live NCBI E-utilities and BLAST. Its tool-use loop is pinned to **OpenAI `gpt-4o`** and requires `OPENAI_API_KEY` plus internet access to NCBI. No extra install is needed beyond initializing its submodule. See the [GeneGPT adapter documentation](src/agents/agent_registry/genegpt_agent/README.md) for usage and artifacts.
+```bash
+conda env create -f environment.yml
+conda activate tissueagent
+python -m pip install -e .
+```
 
-- **CellVoyager** runs in its own conda environment to isolate its upstream dependencies. Create it once:
+`environment.yml` supplies Python 3.12, Node.js 22, and pip. The editable pip install installs TissueAgent and resolves its Python dependencies from `pyproject.toml`. Use `conda activate tissueagent` in subsequent terminals.
 
-  ```bash
-  conda env create -n cellvoyager -f src/agents/agent_registry/cellvoyager_agent/upstream/environment.yml
-  ```
+**Nix + uv**
 
-  Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in the environment for CellVoyager's selected model.
+Install [Nix](https://nixos.org/download/) with flake support enabled before using this option.
 
-### Artifacts
+```bash
+nix develop
+uv sync --frozen --python 3.12
+source .venv/bin/activate
+```
 
-Each invocation writes to the active project's `outputs/<agent_id>/<request_id>/` directory (GeneAgent historically under `data/gene_agent/<request_id>/`). The absolute paths are returned in the tool output so downstream agents and the user can reference them.
+The [Nix flake](flake.nix) supplies the development toolchain, including Python, uv, Node.js/npm, and an R environment. Enter `nix develop` again for each new terminal, then activate `.venv` for Python commands.
 
-### Adding your own external agent
+### Verify the Python installation
 
-The full integration recipe — file structure, manifest schema, LLM-compatibility shim, common pitfalls — is documented in [`INTEGRATING.md`](INTEGRATING.md) at the repository root, with the Gene Agent integration as the worked example. A copy-paste skeleton lives at `src/agents/agent_registry/_template_external_agent/`.
+With your chosen environment active:
+
+```bash
+python --version
+tissueagent --help
+git submodule status
+```
+
+The help command needs no API key and makes no model calls. The submodule listing should contain GeneAgent, GeneGPT, and CellVoyager at their pinned commits; a leading `-` indicates an uninitialized submodule and `+` indicates a checkout that differs from the pinned commit.
+
+Node.js/npm are needed to build or develop the Web UI. Notebook and CLI use do not require the frontend build. Task-specific tools such as Tesseract and R are covered under [Advanced setup](#advanced-setup-and-troubleshooting).
+
+## Credentials and models
+
+<a id="llm-credentials"></a>
+
+The default model is `gpt-5.5`. Export the key for the provider you intend to use **before starting the server, Jupyter, or CLI**:
+
+```bash
+export OPENAI_API_KEY="your-openai-api-key"
+# Optional, when using these providers:
+export ANTHROPIC_API_KEY="your-anthropic-api-key"
+export OPENROUTER_API_KEY="your-openrouter-api-key"
+```
+
+| Provider | Environment variable | Example registered model IDs |
+| --- | --- | --- |
+| [OpenAI](https://platform.openai.com/api-keys) | `OPENAI_API_KEY` | `gpt-5.5`, `gpt-5.4`, `gpt-5.1` |
+| [Anthropic](https://console.anthropic.com/settings/keys) | `ANTHROPIC_API_KEY` | `claude-opus-4-7`, `claude-sonnet-4-6` |
+| [OpenRouter](https://openrouter.ai/keys) | `OPENROUTER_API_KEY` | `openrouter/gpt-5.1`, `openrouter/claude-sonnet-4-6` |
+
+In the Web UI, **sidebar → API keys** also accepts provider keys. These keys are held in server memory and override the corresponding environment values for that server. Separate notebook and CLI processes need their own environment keys. CellVoyager's subprocess also needs exported keys; see [External agents](#external-agents).
+
+Choose the model with `--model <id>` in the CLI, the demo notebook's `MODEL` setting where provided, or the UI's **Orchestration agents** and **Expert agents** dropdowns. The CLI flag selects both roles. In the UI, changing orchestration updates the expert model by default; **sync** re-links them after an independent change. Changes apply to the next request. The current model catalog, including self-hosted options, is defined in [`src/models.py`](src/models.py).
+
+## Run TissueAgent
+
+Activate the environment you installed above and return to the repository root in each new terminal.
+
+### Web UI
+
+For normal use, build the frontend once, then serve it with the backend:
+
+```bash
+npm --prefix src/frontend ci
+npm --prefix src/frontend run build
+PYTHONPATH=src python -m uvicorn server.main:app --host 127.0.0.1 --port 8000
+```
+
+Open **http://127.0.0.1:8000**. On later launches, only the last command is needed; rebuild after frontend source changes. The backend serves the UI when `src/frontend/dist/` exists.
+
+For frontend development with hot reload, install frontend dependencies as above and run these in two terminals:
+
+```bash
+# Terminal 1: backend, with the Python environment active
+PYTHONPATH=src python -m uvicorn server.main:app --reload --reload-dir src --host 127.0.0.1 --port 8000
+```
+
+```bash
+# Terminal 2: frontend, from the repository root
+npm --prefix src/frontend run dev -- --host 127.0.0.1
+```
+
+Open **http://127.0.0.1:5173**. The development frontend proxies API and WebSocket traffic to port 8000.
+
+<a id="execution-modes"></a>
+
+The UI offers two interaction modes:
+
+- **Autopilot** (default): runs the full workflow without approval pauses.
+- **Copilot**: pauses after planning and recruitment. Approve, edit the plan or agent assignments, send feedback, or cancel from the plan panel.
+
+The mode persists with the session. Finish or cancel a run before changing modes. Notebook and CLI runs always use Autopilot.
+
+### Notebook
+
+From the activated Python environment:
+
+```bash
+python -m notebook
+```
+
+Open a notebook under `demo/` and run it from top to bottom. Make sure its kernel uses the environment where TissueAgent was installed. If the environment is not available in Jupyter's kernel menu, register it once:
+
+```bash
+python -m ipykernel install --user --name tissueagent --display-name "TissueAgent"
+```
+
+Select **TissueAgent** as the notebook kernel. In a notebook cell, `import sys; print(sys.executable)` shows which interpreter is running. Credentials must be available to the Jupyter process before launching a fresh agent run.
+
+See [Examples and outputs](#examples-and-outputs) and the [demo guide](demo/README.md) for input files, saved reports, and cache reuse.
+
+### CLI
+
+The installed `tissueagent` command runs the full workflow on one prompt. It streams the agent trace to stderr and writes the answer to stdout.
+
+```bash
+# Stage your dataset and save a structured response.
+tissueagent --json --dataset ./my_sample.h5ad \
+  "Summarize the cell types in library/datasets/my_sample.h5ad" > result.json
+
+# Attach a project-specific reference file.
+tissueagent --attach ./markers.csv "Interpret the genes in uploads/markers.csv"
+
+# Read a prompt from a text file.
+tissueagent --quiet - < prompt.txt
+```
+
+With uv, `uv run --frozen tissueagent ...` runs the same entry point without manually activating `.venv`. With dependencies installed, the module entry point is also available from the repository root:
+
+```bash
+PYTHONPATH=src python -m cli --help
+```
+
+| Flag | Purpose |
+| --- | --- |
+| `--model <id>` | Select the model for both orchestration and expert roles |
+| `--dataset <path>` | Copy a reference dataset to `library/datasets/`; repeat for multiple inputs |
+| `--attach <path>` | Copy a file to the project's `uploads/`; repeat for multiple attachments |
+| `--json` | Return structured output including answer, project ID, artifacts, and staged paths |
+| `--quiet`, `-q` | Suppress the streaming trace |
+| `--docker`, `--no-docker` | Select Docker or a local gateway for R skill steps |
+| `-` | Read the prompt from stdin |
+
+Use `tissueagent --help` for all flags. CLI runs are saved as projects and appear in the Web UI when both processes use the same [state root](#state-and-output-locations).
+
+## External agents
+
+| Agent | Purpose | Environment and credentials |
+| --- | --- | --- |
+| [GeneAgent](https://github.com/ncbi-nlp/GeneAgent) | Interpret a gene set with evidence from biological databases | TissueAgent environment; `OPENAI_API_KEY`; pinned `gpt-5.1` |
+| [GeneGPT](https://github.com/ncbi/GeneGPT) | Answer factual genomics questions through NCBI E-utilities and BLAST | TissueAgent environment; `OPENAI_API_KEY`; pinned `gpt-4o`; NCBI internet access |
+| [CellVoyager](https://github.com/zou-group/CellVoyager) | Analyze an AnnData dataset and produce a notebook and hypotheses | Separate `cellvoyager` Conda environment; exported `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` |
+
+All three upstream sources are pinned submodules. `git clone --recurse-submodules` or `git submodule update --init --recursive` fetches them. GeneAgent and GeneGPT use the main environment's dependencies and require no separate pip installation; their adapters handle upstream API compatibility.
+
+To enable CellVoyager, have Conda available on the application's `PATH` and create its environment once, even if you installed TissueAgent with uv or Nix:
+
+```bash
+conda env create -n cellvoyager \
+  -f src/agents/agent_registry/cellvoyager_agent/upstream/environment.yml
+```
+
+The lowercase name `cellvoyager` is required by the adapter. If that environment already exists, update it with `conda env update -n cellvoyager -f src/agents/agent_registry/cellvoyager_agent/upstream/environment.yml`. Keep the TissueAgent environment active when launching TissueAgent; the adapter invokes CellVoyager through `conda run`.
+
+Verify its import from the upstream directory:
+
+```bash
+(
+  cd src/agents/agent_registry/cellvoyager_agent/upstream
+  conda run -n cellvoyager python -c "import cellvoyager; print('CellVoyager OK')"
+)
+```
+
+CellVoyager uses `claude-sonnet-4-6` when an Anthropic environment key is available. With only an OpenAI environment key, the adapter selects `gpt-4o`. Its tool's `model_name` argument can override that choice. GeneAgent and GeneGPT retain their pinned models independently of TissueAgent's main model selection.
+
+See the [GeneAgent adapter](src/agents/agent_registry/gene_agent/README.md), [GeneGPT adapter](src/agents/agent_registry/genegpt_agent/README.md), and [integration guide](INTEGRATING.md) for implementation details and adding an external agent.
+
+## Examples and outputs
+
+<a id="demo"></a>
+
+The [demo guide](demo/README.md) documents the notebooks, required inputs, and retained reports. The Lohoff examples include all five panels, **2a–2e**; the heart example demonstrates spot deconvolution. Notebook outputs already contain executed figures and reports where available.
+
+- Fig. **2b, 2d, and 2e** retain their runs under `cached/{TASK}/`, including reports, figures, tables, logs, state, and executed notebook copies. Pre-rerun notebook backups are under `cached/notebook_backups/`.
+- Fig. **2a and 2c** retain runs under `demo/outputs/`. Each notebook's `OUTPUT_DIR` gives its exact location.
+- Both output directories are Git-ignored. Lohoff notebooks reuse a completed run only when its model, prompt, and input hashes match; choose a fresh output directory for a new run. Running without matching cached results makes model calls and needs credentials.
+
+The Fig. 2d and 2e reports document approximations required by missing original graph/polygon inputs. See the reports for scientific limitations and differences from the published panels. Model-generated analyses can vary between runs.
+
+**Web UI demonstration:**
+
+https://github.com/user-attachments/assets/ef381418-cf5c-431b-9052-f931c922d2c8
+
+## Advanced setup and troubleshooting
+
+### Task-specific dependencies
+
+| Capability | Additional requirement |
+| --- | --- |
+| Figure reproduction with reference-label OCR | Tesseract executable on `PATH`; `pytesseract` is included in the Python dependencies. Check with `tesseract --version`. |
+| Local R skill steps | R with the IRkernel Jupyter kernel and the packages needed by the task |
+| Docker R skill steps | Docker installed and running; see [R kernel setup](DOCKER.md) |
+| CellVoyager | Its separate Conda environment and exported provider credentials, as described above |
+
+<a id="coding-sandbox"></a>
+
+The coding agent runs Python and shell commands locally. For steps assigned the `r-execution` skill, the R gateway runs locally by default; **Docker for R steps** in Web Settings or `--docker` in the CLI selects the container. These settings affect the R gateway. See [DOCKER.md](DOCKER.md) for details.
+
+### State and output locations
+
+By default, runtime state is stored under the repository root:
+
+| Content | Default location |
+| --- | --- |
+| Shared reference datasets and files | `workspace/library/datasets/`, `workspace/library/files/` |
+| Active project's inputs and generated artifacts | `workspace/project/uploads/`, `workspace/project/outputs/` |
+| Parked projects | `projects/<project_id>/` |
+| In-flight plans and logs | `plan_scratch/`, `logs/` |
+| Retained demo runs | Notebook-specific `cached/` or `demo/outputs/` paths |
+
+`library/` is read-only to agents. Switching projects parks the old project outside the agent-visible workspace. External-agent tools return artifact paths: GeneAgent and GeneGPT write under active-project outputs; CellVoyager also retains its upstream run under `workspace/cellvoyager_agent/` and publishes hypothesis artifacts to the active project.
+
+Set `TISSUEAGENT_STATE_ROOT` **before starting a process** to relocate its workspace, projects, plans, and logs. The Lohoff notebooks set an isolated state root for each generated run. To run independent processes concurrently, give them separate state roots and separate `TISSUEAGENT_GATEWAY_PORT` values if they use R gateways; choose separate Web UI server ports as well.
+
+### Common setup issues
+
+| Symptom | Check or fix |
+| --- | --- |
+| `tissueagent` or a Python package is missing | Activate the installed environment; check `python -c "import sys; print(sys.executable)"`. With uv, use `uv run --frozen tissueagent --help`. |
+| A notebook cannot import installed packages | Select the correct kernel; register it with the command in [Notebook](#notebook), then restart the kernel. |
+| The backend runs but the Web UI is absent | Build `src/frontend/dist/` using the [Web UI](#web-ui) commands, or start the development frontend and open port 5173. |
+| Frontend installation rejects the Node version | Check `node --version`; use Node.js 22.12 or later. |
+| Provider authentication fails | Export the relevant key before launching that process, or set it in the UI for that server. Keys entered in the UI do not configure separate notebook/CLI processes. |
+| An external-agent upstream directory is empty | Run `git submodule update --init --recursive` from the repository root. |
+| CellVoyager cannot import | Check `conda` is on `PATH`, the environment is named `cellvoyager`, and the import verification above passes. |
+| A Lohoff notebook rejects an existing output directory | Use the matching completed run or choose a new `OUTPUT_DIR`; preserve the previous run for comparison. |
+
+TissueAgent is a local, single-user application. The documented web commands bind to `127.0.0.1`; the API and WebSocket have no sign-in, so keep the server local. Uploads are limited to 8 GiB per file by default; set `TISSUEAGENT_MAX_UPLOAD_BYTES` before launching the server to change that limit.
+
+## Architecture
+
+The entry points are `src/server/main.py` (Web UI backend) and `src/cli.py` (CLI, also used by the Lohoff notebooks). They invoke the shared workflow in `src/graph/` and the agents registered in `src/agents/`.
+
+| Directory | Purpose |
+| --- | --- |
+| `src/agents/`, `src/graph/` | Agents, tools, and workflow orchestration |
+| `src/server/`, `src/frontend/` | FastAPI backend and React/Vite Web UI |
+| `knowledge/` | Plans, skills, scripts, and reference documentation |
+| `demo/` | Example notebooks and inputs |
+| `docs/`, `tests/` | Documentation and regression checks |
+| `site/` | Separate informational website |
+| `docker/` | Optional R kernel image |
+
+See [Repository structure](docs/REPOSITORY_STRUCTURE.md) for the source and runtime layout, and [INTEGRATING.md](INTEGRATING.md) for external-agent integration.
 
 ## Data Availability
 
