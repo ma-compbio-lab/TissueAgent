@@ -1,8 +1,8 @@
 # Final migration file manifest
 
-Every path below belongs to the cleaned `cleanup/deepagent-only` branch working tree. The four `upstream` paths are git submodule pointers.
+Every path below belongs to the cleaned `cleanup/deepagent-only` branch working tree. The three retained `upstream` paths are git submodule pointers.
 
-## Agents and prompts (120)
+## Agents and prompts (112)
 
 - `src/agents/__init__.py`
 - `src/agents/agent_defns.py`
@@ -68,14 +68,6 @@ Every path below belongs to the cleaned `cleanup/deepagent-only` branch working 
 - `src/agents/agent_registry/hypothesis_agent/params.py`
 - `src/agents/agent_registry/hypothesis_agent/prompt.py`
 - `src/agents/agent_registry/hypothesis_agent/tools.py`
-- `src/agents/agent_registry/mllmcelltype_agent/README.md`
-- `src/agents/agent_registry/mllmcelltype_agent/__init__.py`
-- `src/agents/agent_registry/mllmcelltype_agent/_driver.py`
-- `src/agents/agent_registry/mllmcelltype_agent/manifest.yaml`
-- `src/agents/agent_registry/mllmcelltype_agent/prompt.py`
-- `src/agents/agent_registry/mllmcelltype_agent/runner.py`
-- `src/agents/agent_registry/mllmcelltype_agent/tool.py`
-- `src/agents/agent_registry/mllmcelltype_agent/upstream`
 - `src/agents/agent_registry/pdf_reader_agent/prompt.py`
 - `src/agents/agent_registry/pdf_reader_agent/tools.py`
 - `src/agents/agent_registry/searcher_agent/prompt.py`

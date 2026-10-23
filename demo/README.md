@@ -46,9 +46,16 @@ the shared AnnData's UMAP is a different embedding. See
 [`provenance_lohoff-2a.json`](data/provenance_lohoff-2a.json) for source details and checksums.
 
 The notebook verifies input hashes before execution. It expects 16,861 atlas cells
-and 52,568 seqFISH cells after excluding `Low quality` labels. The first run needs
-credentials and makes model calls. No completed result is bundled; later runs can
-reuse a completed local result only when the model, prompt, and input hashes match.
+and 52,568 seqFISH cells after excluding `Low quality` labels. Saved notebook outputs
+include the executed example's final figure and data checks. Executing the notebook
+needs credentials and makes model calls unless a completed local result matches the
+model, prompt, and input hashes. Generated run directories remain local.
+
+The [Fig. 2c notebook](figure_recreation_lohoff-2c.ipynb) recreates the three germ-layer
+panels and verifies all 19,416 cells and their original spatial coordinates in each
+panel. Both notebooks display the explicitly named `final_figure.png`, so diagnostic
+plots cannot be mistaken for the final result. Reports document approximate colors
+and, for Fig. 2c, the scale calibration inferred from the reference image.
 
 ### Tissue-niche baselines
 
@@ -58,19 +65,6 @@ For named annotation with TissueAgent, Biomni and SpatialAgent, use the
 SpatialFusion Xenium OVCA with matched inputs/prompts, configurable models (GPT-5.1 by default),
 macro F1/balanced accuracy, and spatial/performance plots. LLMiniST is deferred.
 
-
-### Hypothesis-recovery benchmark (Comment #7)
-
-See [`benchmark/hypothesis_recovery/README.md`](../benchmark/hypothesis_recovery/README.md) and
-[`METHODS.md`](../benchmark/hypothesis_recovery/METHODS.md). Quick start:
-
-```bash
-PYTHONPATH=src python demo/run_hypothesis_recovery.py \
-  --fixture farah_heart_merfish --arm tissueagent --seed-existing
-PYTHONPATH=src python demo/run_hypothesis_recovery.py \
-  --fixture farah_heart_merfish --arm cellvoyager --num-analyses 1 --model gpt-4o
-PYTHONPATH=src python demo/score_hypothesis_recovery.py --all --aggregate
-```
 
 ### Web UI Demo
 

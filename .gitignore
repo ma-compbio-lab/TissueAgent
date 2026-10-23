@@ -16,6 +16,11 @@ __marimo__/
 .codex/
 AGENTS.md
 
+# Local task planning notes
+/findings.md
+/progress.md
+/task_plan.md
+
 # Frontend dependencies and build output
 node_modules/
 src/frontend/dist/

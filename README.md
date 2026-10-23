@@ -403,7 +403,7 @@ TissueAgent integrates third-party research agents through a thin adapter layer:
 |---|---|---|---|
 | **GeneAgent** | [ncbi-nlp/GeneAgent](https://github.com/ncbi-nlp/GeneAgent) | Interprets a gene list and returns a biological-process narrative verified against GO/KEGG/NCBI/PubMed | `OPENAI_API_KEY` (pinned to `gpt-5.1`) |
 | **CellVoyager** | [zou-group/CellVoyager](https://github.com/zou-group/CellVoyager) | Autonomous single-cell analysis of an `.h5ad` dataset; proposes and executes analyses, producing a Jupyter notebook + hypotheses | `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`; runs in an isolated `cellvoyager` conda env |
-| **mLLMCelltype** | [cafferychen777/mLLMCelltype](https://github.com/cafferychen777/mLLMCelltype) | Multi-LLM consensus cell-type annotation from per-cluster marker genes; returns labels plus confidence (consensus proportion, entropy, per-model votes) | `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`; runs in an isolated `mllmcelltype` conda env |
+| **GeneGPT** | [ncbi/GeneGPT](https://github.com/ncbi/GeneGPT) | Answers factual genomics questions through live NCBI E-utilities and BLAST calls, including gene aliases, genomic locations, SNP associations, and sequence alignment | `OPENAI_API_KEY` (pinned to `gpt-4o`); internet access to NCBI |
 
 ### Installing the upstream code
 
@@ -413,7 +413,7 @@ Every external agent's source is included as a git submodule pinned to a tested 
 git submodule update --init --recursive
 ```
 
-This populates each `src/agents/agent_registry/<agent_id>/upstream/` directory. TissueAgent imports the upstream code through its adapter — no pip install is needed for GeneAgent, and the isolated-env agents below have their own one-time setup.
+This populates each `src/agents/agent_registry/<agent_id>/upstream/` directory. TissueAgent imports the upstream code through its adapter. GeneAgent and GeneGPT need no extra pip install; CellVoyager has the one-time environment setup below.
 
 **Verify the submodules are present:**
 
@@ -428,18 +428,15 @@ If any are missing, re-run the `git submodule update` command above.
 
 - **GeneAgent** always calls **OpenAI `gpt-5.1`** regardless of TissueAgent's model selection, so its published cascade behavior stays reproducible. No extra install. Requires `OPENAI_API_KEY` (env var or the web UI's *API keys* panel).
 
-- **CellVoyager** and **mLLMCelltype** each depend on `openai>=2.0`, which conflicts with TissueAgent's pinned `openai<2.0`, so they run in their own conda envs. Create them once:
+- **GeneGPT** answers individual factual genomics questions using live NCBI E-utilities and BLAST. Its tool-use loop is pinned to **OpenAI `gpt-4o`** and requires `OPENAI_API_KEY` plus internet access to NCBI. No extra install is needed beyond initializing its submodule. See the [GeneGPT adapter documentation](src/agents/agent_registry/genegpt_agent/README.md) for usage and artifacts.
+
+- **CellVoyager** runs in its own conda environment to isolate its upstream dependencies. Create it once:
 
   ```bash
-  # CellVoyager
   conda env create -n cellvoyager -f src/agents/agent_registry/cellvoyager_agent/upstream/environment.yml
-
-  # mLLMCelltype
-  conda create -n mllmcelltype -y python=3.11
-  conda run -n mllmcelltype pip install "mllmcelltype[openai,anthropic]"
   ```
 
-  Either `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` (OpenAI preferred) must be resolvable through the key registry. mLLMCelltype falls back to importing the pinned submodule in-process if its conda env is absent (convenient for smoke tests; the isolated env is the supported path).
+  Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in the environment for CellVoyager's selected model.
 
 ### Artifacts
 

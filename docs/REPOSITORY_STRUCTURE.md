@@ -4,7 +4,7 @@ This is the cleaned tree on `cleanup/deepagent-only`. The [file manifest](MIGRAT
 
 | Area | Paths | Purpose |
 | --- | ---: | --- |
-| `src/agents/` | 120 | Agent registry, prompts, tools, DeepAgent coding worker, and external-agent adapters |
+| `src/agents/` | 112 | Agent registry, prompts, tools, DeepAgent coding worker, and external-agent adapters |
 | `src/graph/` | 8 | LangGraph orchestration, state handling, routing, and UI events |
 | `src/server/` | 18 | FastAPI service, routes, sessions, persistence, usage tracking, and streaming |
 | `src/frontend/` | 57 | React/Vite interface and its frontend test |
@@ -21,6 +21,6 @@ The main execution path is `src/cli.py` or `src/server/main.py` → `src/graph/g
 
 The API serves the React app in `src/frontend/` and stores runtime data under `workspace/`. `workspace/library/` contains shared inputs; `workspace/project/` holds the active project's uploads and outputs. Parked projects live under the repository-root `projects/` directory. Only placeholder files are versioned there. The `site/` directory is a separate static informational site.
 
-External adapters for CellVoyager, GeneAgent, GeneGPT, and mLLMCelltype live under `src/agents/agent_registry/`. Each adapter's `upstream` path is a pinned git submodule, not vendored code. Their upstream trees must be initialized before running those integrations or their dependent tests.
+External adapters for CellVoyager, GeneAgent, and GeneGPT live under `src/agents/agent_registry/`. Each adapter's `upstream` path is a pinned git submodule, not vendored code. Their upstream trees must be initialized before running those integrations or their dependent tests.
 
 `pyproject.toml` and `uv.lock` define the Python package; `src/frontend/package.json` and its lockfile define the web app. `flake.nix` and `environment.yml` provide alternative development environments. `docker/Dockerfile` supports the optional R kernel container. `README.md`, `INTEGRATING.md`, and `DOCKER.md` explain user setup and integration points.
