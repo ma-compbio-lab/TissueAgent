@@ -151,7 +151,6 @@ def test_parent_checkpointer_does_not_choke_on_subgraph_state() -> None:
 
 
 if __name__ == "__main__":
-    test_coding_agent_state_is_checkpoint_safe()
     test_hypothesis_state_has_no_repl()
     test_parent_checkpointer_does_not_choke_on_subgraph_state()
     print("\nAll subagent checkpoint safety tests PASS")

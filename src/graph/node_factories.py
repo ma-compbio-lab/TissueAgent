@@ -28,6 +28,7 @@ from langgraph.types import Command
 
 from agents.agent_utils import format_skill_prompt
 from config import DATA_DIR, active_project_outputs
+from graph.context_recovery import invoke_with_context_recovery
 from graph.message_utils import (
     normalize_trailing_assistant,
     sanitize_message,
@@ -272,7 +273,9 @@ def create_agent_node(
         system_prompt = _build_system_message(prompt_text, cacheable=is_anthropic)
         t0 = time.perf_counter()
         response = standardize_message_format(
-            cast(AIMessage, agent_model.invoke([system_prompt] + messages))
+            cast(AIMessage, invoke_with_context_recovery(
+                agent_model, [system_prompt] + messages, node_name=agent_node_id,
+            ))
         )
         elapsed = time.perf_counter() - t0
         response.name = agent_node_id

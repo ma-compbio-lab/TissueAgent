@@ -13,10 +13,10 @@ import inspect
 import json
 import logging
 from collections.abc import Callable
-from datetime import datetime, timezone
 from queue import Queue
 
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.tools import StructuredTool
 from langgraph.graph import END, START, MessagesState, StateGraph
 
 from agents.agent_defns import (
@@ -30,6 +30,7 @@ from agents.agent_defns import (
     ReporterAgent,
 )
 from agents.agent_utils import substitute_shared_prompts, truncate_output
+from agents.evaluator_agent.validation import create_evaluator_state_update
 from agents.planner_agent.prompt import PlannerReplanPrompt
 from config import (
     MANAGER_STEP_RESERVE,
@@ -58,6 +59,7 @@ from graph.node_factories import (
 )
 from graph.plan_output import create_planner_state_update, create_recruiter_state_update
 from graph.replan_state import effective_replan_count
+from server.plan_store import plan_store
 
 
 class TissueAgentState(MessagesState):
@@ -430,27 +432,11 @@ def create_tissueagent_graph(
 
     evaluator_tool_node = create_tool_node(EvaluatorAgent.tools)
 
-    def evaluator_state_update(response, state):
-        content = (response.content or "").strip()
-        head = content.splitlines()[0].upper() if content else ""
-        if head.startswith("ROUTE: REPLAN") and allow_targeted_replanning:
-            prior = effective_replan_count(state)
-            new_count = prior + 1
-            history = list(state.get("replan_history", []))
-            history.append(datetime.now(timezone.utc).isoformat())
-            if new_count > MAX_REPLANS:
-                # Rewrite the verdict in place so the UI and the router agree.
-                # The router now decides purely from replan_count, but keeping
-                # the content in sync avoids stale REPLAN text bleeding into
-                # the reporter's context.
-                response.content = (
-                    "ROUTE: REPORT\n\n"
-                    f"EVALUATION: Replan limit reached (maximum {MAX_REPLANS}). Returning latest evaluator assessment.\n\n"
-                    "NOTE: The evaluator attempted to trigger replanning beyond the limit; "
-                    "please review earlier feedback for unresolved blockers."
-                )
-            return {"replan_count": new_count, "replan_history": history}
-        return {}
+    evaluator_state_update = create_evaluator_state_update(
+        plan_store.read,
+        allow_targeted_replanning=allow_targeted_replanning,
+        max_replans=MAX_REPLANS,
+    )
 
     def evaluator_router(response, state) -> str:
         """EvaluatorAgent transition function.
@@ -497,23 +483,23 @@ def create_tissueagent_graph(
 
     graph.add_edge(START, planner_node_id)
 
-    graph.add_node(planner_node_id, planner_node)
+    graph.add_node(planner_node_id, planner_node, input_schema=OrchestratorState)
     graph.add_node(planner_tool_node_id, planner_tool_node)
     graph.add_edge(planner_tool_node_id, planner_node_id)
 
-    graph.add_node(manager_node_id, manager_node)
+    graph.add_node(manager_node_id, manager_node, input_schema=OrchestratorState)
     graph.add_node(manager_tool_node_id, manager_tool_node)
     graph.add_edge(manager_tool_node_id, manager_node_id)
 
-    graph.add_node(recruiter_node_id, recruiter_node)
+    graph.add_node(recruiter_node_id, recruiter_node, input_schema=OrchestratorState)
     graph.add_node(recruiter_tool_node_id, recruiter_tool_node)
     graph.add_edge(recruiter_tool_node_id, recruiter_node_id)
 
-    graph.add_node(evaluator_node_id, evaluator_node)
+    graph.add_node(evaluator_node_id, evaluator_node, input_schema=OrchestratorState)
     graph.add_node(evaluator_tool_node_id, evaluator_tool_node)
     graph.add_edge(evaluator_tool_node_id, evaluator_node_id)
 
-    graph.add_node(reporter_node_id, reporter_node)
+    graph.add_node(reporter_node_id, reporter_node, input_schema=OrchestratorState)
     graph.add_node(reporter_tool_node_id, reporter_tool_node)
     graph.add_edge(reporter_tool_node_id, reporter_node_id)
 

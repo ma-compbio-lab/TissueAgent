@@ -30,3 +30,14 @@ def test_effective_replan_count_does_not_double_count_sources() -> None:
     """The counter and history describe the same events, so take their maximum."""
     state = {"messages": [_verdict("REPLAN")], "replan_count": 1}
     assert effective_replan_count(state) == 1
+
+
+def test_effective_replan_count_ignores_tool_use_turns() -> None:
+    """Interim route text while gathering evidence must not consume a replan."""
+    inspection = AIMessage(
+        content="ROUTE: REPLAN\nInspecting evidence first",
+        name="evaluator_agent",
+        tool_calls=[{"name": "read", "args": {"path": "results.json"}, "id": "read-1"}],
+    )
+    state = {"messages": [inspection, _verdict("REPLAN")]}
+    assert effective_replan_count(state) == 1

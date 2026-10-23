@@ -16,6 +16,8 @@ def effective_replan_count(state: dict[str, Any]) -> int:
     for message in state.get("messages", []):
         if getattr(message, "name", None) != "evaluator_agent":
             continue
+        if getattr(message, "tool_calls", None):
+            continue  # Evidence gathering is not a final replan verdict.
         content = getattr(message, "content", "")
         if not isinstance(content, str):
             continue

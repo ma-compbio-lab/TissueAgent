@@ -84,7 +84,10 @@ dependencies = [
     "mygene==3.2.2",
     "harmonypy==0.0.10",
     "celltypist==1.7.1",
-    "tiledbsoma==1.17.1",
+    # Optional-at-runtime doublet QC for sufficiently broad raw count matrices.
+    "scrublet>=0.2.3,<0.3",
+    # Restores verified TLS access to CELLxGENE Census on macOS.
+    "tiledbsoma==2.3.0",
     "docker>=7.0.0",
     "websocket-client>=1.7.0",
     "utag",

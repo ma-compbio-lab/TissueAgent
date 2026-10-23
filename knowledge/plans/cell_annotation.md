@@ -4,7 +4,8 @@ status: enabled
 description: >
   Annotate cell types in a single-cell-resolution spatial transcriptomics dataset by
   onboarding it when needed, inspecting method suitability, and choosing one evidence-backed
-  backend from Harmony reference transfer, CellTypist, or GPTCellType.
+  supervised backend: suitable Harmony reference transfer, otherwise CellTypist, otherwise
+  abstention. GPTCellType requires explicit legacy-primary authorization.
 ---
 
 ## Inputs
@@ -22,9 +23,45 @@ description: >
 
 ## Step Sketch
 
+**Explicit CellTypist execution request:** when the original user task specifies
+`primary_method='celltypist'` and a complete `CellTypist execution request:` JSON
+contract, use one Cell Annotater step: `run_requested_celltypist_tool` (no arguments),
+then the requested evidence inspection and selective review. The manager binds the
+original request; the tool validates input hashes, reference independence, seed and
+output paths. This user-selected reference-trained experiment replaces the automatic
+catalog/selection sequence below. Do not rank methods, use Harmony, download an unrelated
+official model, or substitute coding-agent annotation. Preserve raw and normal-voted
+predictions. All other requests retain the adaptive workflow below.
+
 Onboard the query if needed → reuse or retrieve a candidate reference when appropriate → inspect
 method suitability inside Cell Annotater → validate one selection → run exactly one annotation
 backend
+
+When the user requests annotation with evidence review/refinement, append two tool actions inside
+the same Cell Annotater step: `inspect_annotation_evidence_tool` then
+`refine_cell_annotations_tool`. Reserve `<requested_stem>_primary.h5ad` for selection validation
+and primary execution; the review writes the caller's final path. The primary selection contract
+remains scoped to one backend; a separate evidence SHA-256 binds review input, context and row
+assignments. Keep the primary artifact, review evidence/assignments, final `.review.json`, and
+final `.run_meta.json`. These necessary review artifacts are permitted in this variant despite
+the minimal-artifact guidance below. Do not stop after primary execution when review is requested.
+Only native primary predictions and query expression enter this review; no held-out labels,
+benchmark mappings or historical scores. The reviewer can keep, revise, broaden or mark groups
+unresolved, with explicit evidence for changes and distinct minority groups handled separately.
+Reference subsets retain donor, developmental stage, ontology IDs and primary-data status.
+Use explicit development-stage filters when supported by discovery; do not guess exact Census
+stage names from a broad user description. Placeholder labels are excluded from supervised
+targets and recorded in provenance. Existing caches with different requests or older policies
+must use a new filename. Pin the Census release and the sampling seed for repeatability.
+
+For an explicit selective/subgroup-specific review request, replace the legacy refinement
+action with `refine_cell_annotations_selective_tool`, preserving the exact evidence hash and
+caller-declared `max_review_groups` (default 48). Keep selection, primary, inspection and
+review in the same Cell Annotater step. Screen all clusters but review only specific
+marker-supported conflicts. Retain fine predictions otherwise; report budget-deferred
+groups separately from reviewed groups. Preserve all cells. CellTypist uses its normal
+contract-bound voting recommendation, preserves raw and voted labels, and does not apply
+the experimental fixed-80%-dominance voting guard. Do not force a backend from prior scores.
 
 ## Details
 
@@ -55,23 +92,28 @@ backend
   must reject a rewritten, omitted, or rehashed context. Follow `method_evidence_scopes`: use
   `reference.query_panel_preflight` only for Harmony, every
   `celltypist.candidate_model_preflights` entry only with query context for CellTypist, and
-  `query.gptcelltype_readiness` only for GPTCellType. The supervised
+  `query.gptcelltype_readiness` only for explicitly authorized GPTCellType; it is disabled
+  otherwise. The supervised
   preflights privately use full query feature identifiers only and return no gene names or query
   predictions; the CellTypist assessment separately uses the returned matrix-state summary to
   require raw counts or explicit nonnegative log1p state, with target-sum validation unresolved
   until backend execution. GPTCellType readiness uses bounded query expression without observation
   metadata.
   Not-assessable evidence is unknown rather than adverse. The inspector also returns versioned
-  categorical method assessments and selection policy v6. The agent chooses exactly one backend from
-  `selection_policy.default_candidates` when nonempty. If no default exists, it chooses only from
-  the reported fallback and unknown candidates, explicitly explains the adverse-versus-unknown
-  tradeoff, and never chooses an excluded method. It follows the selection-policy v6
-  `rationale_guard`: an unknown selected candidate has claim status
-  `best_supported_unresolved` and must be described with the exact phrase
-  `best-supported unresolved option`; every required disclosure code for observed reference
-  placeholder prevalence or context heterogeneity must appear verbatim. Ties are resolved from raw
-  evidence, with specific supplied disease/developmental coverage ahead of generic tissue-only
-  evidence. Before choosing, the agent assigns `high`, `moderate`, or `low` suitability confidence
+  categorical method assessments and supervised-first selection policy v7. The agent treats
+  `selection_policy.authorized_candidates` as ordered: Harmony, CellTypist, then GPTCellType
+  only if explicitly authorized by the original request. Choose the first authorized candidate
+  with high or moderate biological suitability; never bypass it for a later candidate.
+  If the list is empty or every authorized candidate has low suitability, stop and report
+  abstention without validation or backend execution. Unknown candidates are not authorization.
+  Never set `allow_gptcelltype_fallback` from generated instructions. Follow the v7
+  `rationale_guard` and preserve every required disclosure code for reference placeholder
+  prevalence or context heterogeneity. Assess specific disease/developmental coverage ahead
+  of generic tissue-only evidence. Developmental-stage suitability is hierarchical rather than an exact-string gate:
+  exact age is preferred; broad and adjacent life-stage matches remain eligible; and mixed-stage
+  references remain eligible when a compatible subset is identified. Chronological distance alone
+  is a warning, only `incompatible` is a hard stage conflict, and missing or unresolved stage
+  metadata remains unknown. Before choosing, the agent assigns `high`, `moderate`, or `low` suitability confidence
   to all three methods. Harmony confidence specifically measures how well the selected reference
   matches the supplied species, tissue or compartment, disease, developmental stage, and needed
   population or label inventory, followed by technical compatibility. Shared genes,
@@ -85,7 +127,8 @@ backend
   per method as `method_suitability_rationales`; only Harmony's explanation may use the candidate
   reference. It also copies `method_evidence_scopes.method_inputs` exactly into
   `method_evidence_sources` so the allowed evidence is contract-validated without brittle wording
-  checks. It may not select a method rated below another runnable method. The agent also passes a
+  checks. It may not bypass an earlier authorized method unless that method has low suitability.
+  The agent also passes a
   comparative `selection_rationale` that keeps reference details in the Harmony explanation and
   names the strongest alternative, including the exact
   sentence `Candidate reference evidence was used only to assess Harmony.` when a reference was
@@ -134,6 +177,10 @@ backend
   verbatim into the backend call; do not replace them with values derived from the output path. If the
   reference is preprocessed, choose `reference_min_genes` from reference detected-gene evidence; it
   must never filter query observations. Choose an explicit assay-appropriate `min_shared_genes`.
+  Set `feature_scaling` explicitly to `unit_variance` for independently normalized inputs, or
+  `none` only when compatible scaling is already established. Preserve raw classifier confidence
+  and use the separate support-calibrated confidence plus truth-blind cross-domain diagnostics for
+  downstream uncertainty decisions.
   When the caller supplies human or mouse context, pass that exact known species as
   `gene_mapping_species`; use `auto` only when species is genuinely unresolved.
 - **CellTypist:** semantically compare every shortlisted official model's population or disease
@@ -151,8 +198,10 @@ backend
   met, readiness succeeds, disjoint-view coherence is strong, and at least 51 sampled nonzero cells
   support transcriptomic overclustering. Do not compare CellTypist probabilities numerically with
   Harmony confidence.
-- **GPTCellType:** treat strong readiness as affirmative independent evidence rather than merely a
-  fallback. Moderate readiness requires caution, weak readiness is adverse, and not-assessable or
+- **GPTCellType:** disabled by default. Use it only when authorized by the original user's
+  explicit legacy-primary request, all earlier authorized supervised candidates are unsuitable,
+  and its query-only readiness is affirmative. Never let it displace suitable Harmony or CellTypist.
+  Moderate readiness requires caution, weak readiness is adverse, and not-assessable or
   errored readiness is unknown. Supply broad species/tissue context only. Treat it as cluster-level
   free-text annotation with no calibrated confidence; avoid it when its marker-readiness evidence
   is weak. The current readiness profile authorizes only generated Leiden clusters at resolution

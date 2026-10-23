@@ -121,7 +121,11 @@ def test_every_state_update_write_is_a_declared_channel() -> None:
     """
     declared = _declared_channels() | {"messages"}
     offenders = []
-    for path in (SRC / "graph" / "graph.py", SRC / "graph" / "plan_output.py"):
+    for path in (
+        SRC / "graph" / "graph.py",
+        SRC / "graph" / "plan_output.py",
+        SRC / "agents" / "evaluator_agent" / "validation.py",
+    ):
         tree = ast.parse(path.read_text())
         for fn in ast.walk(tree):
             if not isinstance(fn, ast.FunctionDef) or "state_update" not in fn.name:

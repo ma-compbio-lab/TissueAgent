@@ -1,0 +1,45 @@
+{
+  "prepared_at_utc": "2026-10-06T01:55:06.931814+00:00",
+  "paper": "https://doi.org/10.1038/s41587-021-01006-2",
+  "author_repository": "https://github.com/MarioniLab/SpatialMouseAtlas2020",
+  "source_url": "https://content.cruk.cam.ac.uk/jmlab/SpatialMouseAtlas2020/MGA_joint_UMAP.Rds",
+  "source_sha256": "b8b23134e76f0f26d37bbfcdbad8d016a31ce4b591f7d018f7493a2614fdb624",
+  "rdata_version": "1.1.0",
+  "data_kind": "Author-provided joint UMAP coordinates and cell metadata; no atlas expression matrix",
+  "atlas_stage": "E8.5 (confirmed in author E8.5_integration_atlas.Rmd)",
+  "input_cells": {
+    "Gastrulation atlas": 16861,
+    "seqFISH": 57536
+  },
+  "non_low_quality_cells": {
+    "Gastrulation atlas": 16861,
+    "seqFISH": 52568
+  },
+  "demo_cells_matched": 19416,
+  "demo_labels_agree": true,
+  "max_demo_vs_joint_coordinate_difference": 16.985377847606657,
+  "coordinate_policy": "Plot both populations from the author joint UMAP table. Do not mix demo X_umap with atlas joint coordinates.",
+  "transformations": [
+    "Read RDS as a DataFrame",
+    "Split rows by source type",
+    "Write CSV without changing coordinates, IDs, or labels"
+  ],
+  "inputs": {
+    "dataset_lohoff_et_al_seqfish.h5ad": {
+      "bytes": 32172928,
+      "sha256": "0588f810603cf3756a5a87d9730465a8968bb18f9c31d1b24e38f1d008305d70"
+    },
+    "gastrulation_atlas_joint_umap.csv": {
+      "bytes": 1624527,
+      "sha256": "f80bc29a1945bcf684b9f58074caf39e23ecce70087cf72bbde2f1ae9e7e6b91"
+    },
+    "reference_lohoff-2a.png": {
+      "bytes": 304716,
+      "sha256": "32573d240e64df56c0b8cdea01dbc0cf8341cafdb34a2d5376a14ea188a88d13"
+    },
+    "seqfish_author_joint_umap.csv": {
+      "bytes": 5826188,
+      "sha256": "6f7b3a3ad14b0b85b2da358b9aa8185d254c8162591875fdda7d3d582727363c"
+    }
+  }
+}

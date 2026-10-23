@@ -42,6 +42,14 @@ src/frontend/dist/
 !/demo/data/reference_lohoff-2d.png
 !/demo/data/method_lohoff-2d.png
 !/demo/data/instructions_lohoff-2d.md
+!/demo/data/dataset_lohoff_et_al_seqfish.h5ad
+!/demo/data/gastrulation_atlas_joint_umap.csv
+!/demo/data/seqfish_author_joint_umap.csv
+!/demo/data/instructions_lohoff-2a.md
+!/demo/data/provenance_lohoff-2a.json
+!/demo/data/instructions_lohoff-2e.md
+!/demo/data/instructions_lohoff-2e.png
+!/demo/data/reference_lohoff-2e.png
 
 # Benchmark inputs and runs remain local. Existing tracked files stay tracked.
 /benchmark/

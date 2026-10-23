@@ -1,6 +1,6 @@
 ---
 name: cell-type-annotation
-description: Assign one cell-type label per observation by evidence-backed selection among Harmony reference transfer, CellTypist, and GPTCellType. Supports validated H5AD queries and queries converted first by Data Onboarding.
+description: Annotate cells with suitable Harmony reference transfer, otherwise CellTypist, and abstain when neither is supported. GPTCellType requires explicit legacy-primary authorization. Supports validated H5AD queries and evidence review.
 applies_to: [cell_annotator_agent, single_cell_agent, data_onboarding_agent, coding_agent]
 status: enable
 ---
@@ -33,7 +33,12 @@ type per observation. Spot-level mixtures require deconvolution instead.
    `convert_spatial_data_tool` and `validate_spatial_data_tool`. If the converter does not support
    the detected format, use the Coding Agent for conversion and validate its result with
    `validate_spatial_data_tool`.
-2. Inside the single Cell Annotator plan step, call `list_celltypist_model_catalog_tool` exactly once.
+2. When the manager binds an explicit `celltypist_execution_request` from the original
+   user task, call `run_requested_celltypist_tool` with no arguments and then the requested
+   evidence inspection/review. This fixed reference-trained CellTypist experiment replaces
+   automatic catalog/method ranking and selection validation; it preserves seed-controlled
+   raw/voted predictions and never substitutes Harmony. Otherwise, inside the single Cell
+   Annotator plan step, call `list_celltypist_model_catalog_tool` exactly once.
    Review the complete verified catalog against the known query biology and shortlist one to three
    exact filenames; no code-generated model rank is provided. Treat the immutable
    `annotation_scope.primary_scope` as the dominant objective; secondary coverage and a tissue-name
@@ -47,29 +52,33 @@ type per observation. Spot-level mixtures require deconvolution instead.
    `method_evidence_scopes`: use
    `reference.query_panel_preflight` only for Harmony, use every
    `celltypist.candidate_model_preflights` entry with query context only for CellTypist, and use
-   `query.gptcelltype_readiness` only for GPTCellType. The supervised
+   `query.gptcelltype_readiness` only for explicitly authorized GPTCellType; it is disabled
+   otherwise. The supervised
    preflights use query feature identifiers only; they do not read query expression or observations.
    The CellTypist assessment separately uses the returned query matrix-state summary to require raw
    counts or explicit nonnegative log1p state, with target-sum validation unresolved until backend
    execution. The tool preserves those raw diagnostics and also returns versioned
-   `method_assessments` and categorical selection policy v6. Not-assessable evidence is unknown,
+   `method_assessments` and supervised-first selection policy v7. Not-assessable evidence is unknown,
    not adverse. Do not inspect query annotation-like columns, benchmark identities, held-out
    labels, mappings, or historical scores.
-3. Choose exactly one backend from `selection_policy.default_candidates` when that list is
-   nonempty. If one default remains, use it; if several remain, reason over their
-   biological/provenance evidence. If there is no default, choose only from the reported
-   `fallback_candidates` and `unknown_candidates`, explicitly explain the adverse-versus-unknown
-   tradeoff, and never choose an excluded method. Follow the selection-policy v6
-   `rationale_guard`: describe a selected method whose claim status is
-   `best_supported_unresolved` with the exact phrase `best-supported unresolved option`, and
-   include every required disclosure code for observed reference placeholder prevalence or
+3. Treat `selection_policy.authorized_candidates` as an ordered list: Harmony before
+   CellTypist, with GPTCellType last only when authorized by the immutable original request.
+   Choose the first candidate with high or moderate biological suitability. If the list is
+   empty or all authorized candidates have low suitability, report abstention without
+   selection validation or backend execution. Unknown candidates are not permission to run
+   a backend. Never set `allow_gptcelltype_fallback` yourself. Follow the v7 `rationale_guard`
+   and include every required disclosure code for reference placeholder prevalence or
    context heterogeneity verbatim. Prioritize a specific supplied
-   disease/developmental match over generic tissue-only evidence; an official catalog default is
-   only a final model tie-break. Assign `high`, `moderate`, or `low` suitability confidence to all
+   disease/developmental match over generic tissue-only evidence. For developmental stage, use the
+   inspector's structured compatibility hierarchy: prefer exact age, accept the same broad or an
+   adjacent life stage, and keep a mixed-stage reference eligible when a compatible subset is
+   reported. A distant-age warning alone is not adverse; only an `incompatible` result is a hard
+   stage conflict, while missing or unresolved stage metadata remains unknown. An official catalog
+   default is only a final model tie-break. Assign `high`, `moderate`, or `low` suitability confidence to all
    three methods before choosing, pass the exact mapping as `method_suitability_confidences`, add
    one evidence-scoped explanation per method in `method_suitability_rationales` with candidate-
    reference evidence confined to Harmony, and
-   never choose a method rated below another runnable method. Harmony suitability means how well
+   never bypass an earlier authorized candidate unless its suitability is low. Harmony suitability means how well
    this specific reference matches the supplied species, tissue or compartment, disease,
    developmental stage, and needed population or label inventory, followed by technical
    compatibility. Shared genes, reference-only separability, and single-source status cannot
@@ -96,7 +105,11 @@ type per observation. Spot-level mixtures require deconvolution instead.
      configuration contract, then pass identical values to one `harmony_transfer_tool` call. The
      backend verifies the preprocessing decision again before full loading. Set
      `gene_mapping_species`, select reference-only `reference_min_genes` when raw preprocessing is
-     required, and select assay-appropriate `min_shared_genes`.
+     required, and select assay-appropriate `min_shared_genes`. Set `feature_scaling` explicitly:
+     use `unit_variance` when query and reference were independently normalized so high-variance
+     genes do not dominate the joint PCA, and use `none` only when compatible feature scaling is
+     already established. Treat cross-domain distance, entropy, and predicted-prior diagnostics as
+     transfer-risk evidence; they never use query truth or directly rewrite labels.
    - **CellTypist** after semantically comparing every shortlisted model's disease or population
      coverage, tissue, developmental stage, label inventory, training provenance, and technical
      preflight. Choose a built-in model only when the match is convincing and its bounded query
@@ -115,9 +128,10 @@ type per observation. Spot-level mixtures require deconvolution instead.
      high panel risk. Pass `celltypist.majority_voting_recommendation.recommended` exactly as
      `majority_voting`; it is true only with met CellTypist prerequisites, successful readiness,
      strong disjoint-view coherence, and at least 51 sampled nonzero cells.
-   - **GPTCellType** when query-only readiness provides affirmative evidence for coherent clusters
-     and held-out positive markers. Strong readiness can outweigh supervised candidates with
-     adverse or unresolved evidence and is not merely a fallback. Moderate readiness requires
+   - **GPTCellType** only when an explicit original-user legacy-primary request authorizes it,
+     all earlier authorized supervised candidates are unsuitable, and query-only readiness
+     supports coherent clusters and held-out positive markers. It is disabled by default
+     and never displaces suitable Harmony or CellTypist. Moderate readiness requires
      caution, weak readiness is adverse, and not-assessable or errored readiness is unknown. Provide
      broad species and tissue context only. It is cluster-level, free-text, reference-free, and has
      no calibrated confidence. The current readiness profile authorizes only generated clusters at
@@ -147,7 +161,12 @@ type per observation. Spot-level mixtures require deconvolution instead.
    estimates. Method selection is an evidence-backed hypothesis, not an oracle guarantee.
 6. Preserve the original query observation count and order. A successful backend must assign a
    prediction to every query observation or surface exclusions explicitly.
-
+7. When evidence review is requested, keep the primary output at a separate path, then call
+   `inspect_annotation_evidence_tool` and pass its exact evidence path/hash to
+   `refine_cell_annotations_tool`. For a selective/subgroup review request, use
+   `refine_cell_annotations_selective_tool` with the caller's group budget instead.
+   Preserve primary predictions, all cells, evidence, and audit files; disclose deferred groups.
+   Review does not authorize another primary backend or use of held-out labels.
 ## Output contract
 
 Every annotated H5AD contains:

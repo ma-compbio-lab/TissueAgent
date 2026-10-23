@@ -32,7 +32,9 @@ from __future__ import annotations
 
 import os
 import threading
+from collections.abc import Sequence
 from contextlib import contextmanager
+from copy import deepcopy
 from typing import Any, Iterator
 
 # Defined at module scope so its identity is stable and it exists *before*
@@ -75,6 +77,10 @@ class _MutableAttrShim:
 
 def _build_legacy_chat_completion(client: Any, pinned_model: str):
     """Return a `ChatCompletion`-shaped object proxying to the new client."""
+    # GeneAgent retains function results but omits the assistant calls that
+    # produced them. Retain actual responses for this shim's lifetime so their
+    # original arguments can be restored without editing upstream or its history.
+    returned_calls: list[tuple[list[dict], list[dict], dict]] = []
 
     class _ChatCompletionShim:
         @staticmethod
@@ -86,15 +92,78 @@ def _build_legacy_chat_completion(client: Any, pinned_model: str):
             for legacy in ("api_key", "api_base", "api_version", "api_type"):
                 kwargs.pop(legacy, None)
 
+            # Modern models require tools/tool messages instead of the retired
+            # functions/function-role protocol used by the upstream agents.
+            functions = kwargs.pop("functions", None)
+            if functions is not None:
+                kwargs["tools"] = [{"type": "function", "function": fn} for fn in functions]
+                kwargs["parallel_tool_calls"] = False  # legacy consumers dispatch one call
+            function_choice = kwargs.pop("function_call", None)
+            if function_choice is not None:
+                kwargs["tool_choice"] = (
+                    {"type": "function", "function": function_choice}
+                    if isinstance(function_choice, dict) else function_choice
+                )
+            messages = kwargs.get("messages")
+            if messages is not None:
+                omitted_calls = [
+                    (prefix, reply) for history, prefix, reply in returned_calls
+                    if history is messages
+                ]
+                kwargs["messages"] = _modernize_legacy_messages(messages, omitted_calls)
+
             response = client.chat.completions.create(
                 model=pinned_model, **kwargs
             )
             # The legacy code accesses .choices[0]["message"]["content"]
             # and .choices[0]["message"]. Wrap the modern objects so both
             # subscript and attribute access work.
-            return _LegacyResponseProxy(response)
+            legacy_response = _LegacyResponseProxy(response)
+            if messages is not None and len(legacy_response.choices) == 1:
+                reply = legacy_response.choices[0]["message"]
+                if "function_call" in reply:
+                    returned_calls.append((messages, deepcopy(messages), deepcopy(reply)))
+            return legacy_response
 
     return _ChatCompletionShim
+
+
+def _modernize_legacy_messages(
+    messages: list[dict], omitted_calls: Sequence[tuple[list[dict], dict]] = (),
+) -> list[dict]:
+    """Convert legacy exchanges, recovering only calls returned for this history."""
+    converted = []
+    pending_call = None
+    for index, original in enumerate(messages):
+        message = dict(original)
+        function_call = message.pop("function_call", None)
+        if message.get("role") == "assistant" and function_call is not None:
+            call_id = f"legacy_call_{index}"
+            message["tool_calls"] = [{
+                "id": call_id, "type": "function", "function": function_call,
+            }]
+            pending_call = (call_id, function_call["name"])
+        elif message.get("role") == "function":
+            if pending_call is None:
+                for prefix, reply in reversed(omitted_calls):
+                    recovered_call = reply["function_call"]
+                    if prefix == messages[:index] and recovered_call["name"] == message.get("name"):
+                        call_id = f"legacy_call_{index}_recovered"
+                        converted.append({
+                            "role": "assistant", "content": reply.get("content", ""),
+                            "tool_calls": [{
+                                "id": call_id, "type": "function", "function": recovered_call,
+                            }],
+                        })
+                        pending_call = (call_id, recovered_call["name"])
+                        break
+            if pending_call is None or pending_call[1] != message.get("name"):
+                raise ValueError("Legacy function result is missing its preceding assistant call.")
+            message = {"role": "tool", "tool_call_id": pending_call[0],
+                       "content": message.get("content", "")}
+            pending_call = None
+        converted.append(message)
+    return converted
 
 
 class _LegacyResponseProxy:
@@ -119,6 +188,21 @@ class _LegacyChoiceProxy:
             "role": getattr(msg, "role", "assistant"),
             "content": getattr(msg, "content", "") or "",
         }
+        # GeneAgent dispatches verification tools by testing membership of this
+        # key. Dropping it turns valid function calls into empty assistant replies.
+        # Omit it for text-only replies: a present-but-None value also breaks the
+        # legacy dispatch branch.
+        function_call = getattr(msg, "function_call", None)
+        tool_calls = getattr(msg, "tool_calls", None) or []
+        if tool_calls:
+            if len(tool_calls) != 1 or tool_calls[0].type != "function":
+                raise ValueError("Legacy agents require exactly one function tool call per response.")
+            function_call = tool_calls[0].function
+        if function_call is not None:
+            self._message["function_call"] = {
+                "name": function_call.name,
+                "arguments": function_call.arguments,
+            }
 
     def __getitem__(self, key: str) -> Any:
         if key == "message":
