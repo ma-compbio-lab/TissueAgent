@@ -8,6 +8,7 @@ TissueAgent is a role-based multi-agent framework that turns natural-language sp
 
 - **Specialized agent roles:** separate planning, recruitment, execution, evaluation, and reporting responsibilities coordinate multi-stage analyses.
 - **Traceable workflows:** a shared plan records decisions, progress, and generated artifacts so analyses can be inspected and revised.
+- **Self-evolving skills:** a separately invoked knowledge optimizer learns from saved session traces and makes small edits to skill and plan Markdown for future runs. Use `tissueagent optimize` with `--propose-only` to review proposed changes; see the [optimizer guide](docs/SELF_EVOLVING_SKILLS.md) for usage and limits.
 - **External-agent integration:** recruit **GeneAgent** to propose and verify biological processes for a gene set, **GeneGPT** for factual NCBI lookups and DNA sequence alignment, and **CellVoyager** for hypothesis generation and iterative exploratory analysis of single-cell datasets. See [External agents](#external-agents) for their inputs, outputs, and setup.
 - **Spatial transcriptomics workflows:** reproduce figures, annotate cell types, analyze cell–cell communication and differential expression, and perform deconvolution.
 
