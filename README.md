@@ -297,7 +297,7 @@ The Fig. 2d and 2e reports document approximations required by missing original 
 
 **Web UI demonstration:**
 
-https://github.com/user-attachments/assets/ef381418-cf5c-431b-9052-f931c922d2c8
+https://github.com/user-attachments/assets/233d950d-ca81-4184-9e5e-a1759a39862b
 
 ## Advanced setup and troubleshooting
 
