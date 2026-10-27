@@ -4,7 +4,9 @@ This folder contains notebooks for several tasks described in the manuscript. Ea
 
 ## Run a notebook
 
-1. Follow the root README's [installation instructions](../README.md#installation). Choose uv, Conda + pip, or Nix + uv; all three support notebooks.
+The commands below use macOS/Linux shells. On Windows, [install Ubuntu with WSL first](../README.md#windows-install-ubuntu-first) and run them in the Ubuntu terminal.
+
+1. Follow the root README's [installation instructions](../README.md#installation). Choose uv, Conda + uv, or Nix + uv; all three support notebooks.
 
 2. From the repository root, activate that environment: `source .venv/bin/activate` for uv or Nix + uv (inside `nix develop`), or `conda activate tissueagent` for Conda.
 

@@ -30,6 +30,14 @@ dependencies = [
     "scipy==1.13.1",
     "seaborn==0.13.2",
     "spatialdata-io==0.1.5",
+    # SpatialData imports this rasterizer but omits it from its dependencies.
+    "datashader==0.18.2",
+    # spatialdata's xarray-schema still imports pkg_resources, removed in
+    # setuptools 82. Keep the runtime compatible until that stack is upgraded.
+    "setuptools>=68,<82",
+    # multiscale-spatial-image in this stack imports zarr.storage.BaseStore,
+    # which is absent in Zarr 3.
+    "zarr>=2.18.7,<3",
     "squidpy>=1.6.2",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.34.0",

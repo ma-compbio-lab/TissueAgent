@@ -33,7 +33,7 @@ Installation and interface are separate choices. Install the Python environment 
 | Notebook | Running and adapting manuscript examples | Use the installed Python environment as the Jupyter kernel | Autopilot |
 | CLI | Terminal use and scripted runs | None beyond the Python environment | Autopilot |
 
-The shell examples below target macOS/Linux. Run commands from the repository root unless a block explicitly changes directory.
+The shell commands below are for **macOS and Linux**. On **Windows**, first [install Ubuntu with WSL](#windows-install-ubuntu-first), then run the commands in the Ubuntu terminal. Run commands from the repository root unless a block explicitly changes directory.
 
 ## Quick start
 
@@ -61,6 +61,16 @@ The cloned submodules provide the external-agent source code. GeneAgent, GeneGPT
 
 <a id="repository-set-up"></a>
 
+### Windows: install Ubuntu first
+
+On Windows 11 or Windows 10 version 2004 (build 19041) or later, open **PowerShell as Administrator** and install Ubuntu through Windows Subsystem for Linux (WSL):
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+Restart Windows if prompted, open **Ubuntu**, and finish the first-run setup by creating a Linux username and password. Install the prerequisites for your chosen setup (Git, uv or Conda, and Node.js/npm for the Web UI) inside Ubuntu, clone this repository there, and follow the macOS/Linux commands in the Ubuntu terminal. See [Microsoft's WSL installation guide](https://learn.microsoft.com/en-us/windows/wsl/install) for details and troubleshooting.
+
 ### Clone or update an existing checkout
 
 If you followed the quick start, continue to [Credentials and models](#credentials-and-models). Otherwise clone the repository as shown above, or initialize submodules in an existing checkout:
@@ -83,17 +93,17 @@ source .venv/bin/activate
 
 This installs the project and dependencies from `uv.lock`. Reactivate `.venv` in each new Python terminal, or use `uv run --frozen` before a command.
 
-**Conda + pip**
+**Conda + uv**
 
 Install [Miniconda](https://docs.anaconda.com/miniconda/) if Conda is not already available.
 
 ```bash
 conda env create -f environment.yml
 conda activate tissueagent
-python -m pip install -e .
+UV_PROJECT_ENVIRONMENT="$CONDA_PREFIX" uv sync --frozen --inexact
 ```
 
-`environment.yml` supplies Python 3.12, Node.js 22, and pip. The editable pip install installs TissueAgent and resolves its Python dependencies from `pyproject.toml`. Use `conda activate tissueagent` in subsequent terminals.
+`environment.yml` supplies Python 3.12, Node.js 22, pip, and uv. The sync command installs this checkout and the same locked Python dependencies as the standalone uv setup into the active Conda environment. `--inexact` retains unrelated Conda packages. Use `conda activate tissueagent` in subsequent terminals and run `python` or `tissueagent` directly. A plain `uv run` from this checkout selects `.venv`; to use Conda with `uv run`, also prefix it with `UV_PROJECT_ENVIRONMENT="$CONDA_PREFIX"`.
 
 **Nix + uv**
 
@@ -114,6 +124,7 @@ With your chosen environment active:
 ```bash
 python --version
 tissueagent --help
+python -c "import scanpy, squidpy, spatialdata_io, tiledbsoma"
 git submodule status
 ```
 
@@ -254,10 +265,10 @@ For an existing installation, update the same environment using your installatio
 uv sync --frozen
 ```
 
-With **Conda + pip**, activate `tissueagent`, then run:
+With **Conda + uv**, activate `tissueagent`, then run from this checkout:
 
 ```bash
-python -m pip install -e .
+UV_PROJECT_ENVIRONMENT="$CONDA_PREFIX" uv sync --frozen --inexact
 ```
 
 CellVoyager runs as a subprocess using the same Python interpreter as TissueAgent. Its analysis notebook kernel also uses that interpreter. Its `instructor` and `litellm` dependencies are installed with TissueAgent, so no separate CellVoyager Conda environment is needed.
@@ -328,7 +339,7 @@ Set `TISSUEAGENT_STATE_ROOT` **before starting a process** to relocate its works
 | Frontend installation rejects the Node version | Check `node --version`; use Node.js 22.12 or later. |
 | Provider authentication fails | Export the relevant key before launching that process, or set it in the UI for that server. Keys entered in the UI do not configure separate notebook/CLI processes. |
 | An external-agent upstream directory is empty | Run `git submodule update --init --recursive` from the repository root. |
-| CellVoyager cannot import | Update dependencies in the active TissueAgent environment with `uv sync --frozen` or `python -m pip install -e .`, initialize the submodules, and run the CLI verification above. |
+| CellVoyager cannot import | Update dependencies using the uv or Conda + uv commands in [External agents](#external-agents), initialize the submodules, and run the CLI verification above. |
 | A Lohoff notebook rejects an existing output directory | Use the matching completed run or choose a new `OUTPUT_DIR`; preserve the previous run for comparison. |
 
 TissueAgent is a local, single-user application. The documented web commands bind to `127.0.0.1`; the API and WebSocket have no sign-in, so keep the server local. Uploads are limited to 8 GiB per file by default; set `TISSUEAGENT_MAX_UPLOAD_BYTES` before launching the server to change that limit.
