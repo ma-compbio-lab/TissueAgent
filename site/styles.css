@@ -862,3 +862,10 @@ button.rp-thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 
   .rp-dialog[open], .rp-dialog[open]::backdrop { animation: none; }
   .rp-body, button.rp-thumb, .rp-clamp, .rp-bar-track i { transition: none; }
 }
+
+/* Sub-heading inside a combined experiment block */
+.paper-exp-subtitle {
+  font-family: var(--serif); font-size: 0.95rem; font-weight: 600;
+  color: var(--ink-2); margin: 24px 0 6px;
+  scroll-margin-top: 72px;
+}

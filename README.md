@@ -1,4 +1,25 @@
-# TissueAgent: A Role-Based Multi-Agent Framework for Reproducible Spatial Transcriptomics Workflows
+<div align="center">
+
+# TissueAgent
+
+### A Role-Based Multi-Agent Framework for Reproducible Spatial Transcriptomics Workflows
+
+**Wenduo Cheng<sup>1,\*,&Dagger;</sup>, Dustin Miao<sup>1,\*</sup>, Spencer Krieger<sup>1</sup>, Junjie Tang<sup>1</sup>, Shuaike Shen<sup>1</sup>, Yangyuan Zhang<sup>1</sup>, Evan Trop<sup>2</sup>, Mingqian Ma<sup>2</sup>, Qing Xiao<sup>3</sup>, Hong Shen<sup>3</sup>, Jian Ma<sup>1,&Dagger;</sup>**
+
+<sup>1</sup>Ray & Stephanie Lane Computational Biology Department, <sup>2</sup>Machine Learning Department, <sup>3</sup>Human-Computer Interaction Institute<br>
+School of Computer Science, Carnegie Mellon University
+
+[\*Equal contribution &middot; &Dagger;Correspondence: wenduoc@andrew.cmu.edu, jianma@cs.cmu.edu]
+
+<p>
+  <a href="https://ma-compbio-lab.github.io/TissueAgent/"><img src="https://img.shields.io/badge/Project-Page-blue?style=for-the-badge" alt="Project Page"></a>&nbsp;
+  <a href="https://ma-compbio-lab.github.io/TissueAgent/paper.html"><img src="https://img.shields.io/badge/Paper-Coming%20Soon-lightgrey?style=for-the-badge" alt="Paper"></a>&nbsp;
+  <a href="https://github.com/ma-compbio-lab/TissueAgent"><img src="https://img.shields.io/badge/GitHub-Code-black?style=for-the-badge&logo=github" alt="GitHub"></a>
+</p>
+
+</div>
+
+---
 
 ## Project Overview
 

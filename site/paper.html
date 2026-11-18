@@ -175,34 +175,11 @@
           </div>
         </section>
 
-        <!-- ── At a Glance ── -->
-        <section class="paper-section">
-          <h2 class="paper-section-title">At a Glance</h2>
-          <div class="paper-highlights">
-            <a class="paper-highlight" href="#reproduce">
-              <span class="ph-num" data-count="22" data-suffix=" / 22">22 / 22</span>
-              <span class="ph-lab">Cell types reproduced from text (Biomni: 12)</span>
-            </a>
-            <a class="paper-highlight" href="#annotation">
-              <span class="ph-num" data-count="1.33" data-decimals="2">1.33</span>
-              <span class="ph-lab">Best mean rank, cell-type annotation</span>
-            </a>
-            <a class="paper-highlight" href="#deconvolution">
-              <span class="ph-num" data-count="100" data-suffix="%">100%</span>
-              <span class="ph-lab">Deconvolution runs completed</span>
-            </a>
-            <a class="paper-highlight" href="#ccc">
-              <span class="ph-num" data-count="1" data-decimals="2">1.00</span>
-              <span class="ph-lab">CCC top-K reproducibility (best)</span>
-            </a>
-          </div>
-        </section>
-
         <!-- ── Overview figure ── -->
         <section class="paper-section" id="overview">
           <h2 class="paper-section-title">Framework Overview</h2>
           <figure class="paper-figure-full">
-            <img src="assets/paper/overview.webp" width="2200" height="2550"
+            <img src="assets/paper/overview.webp" width="1898" height="2200"
               alt="TissueAgent overview: concept, workflow, shared plan updates, and self-evolving skills"
               loading="lazy">
             <figcaption>
@@ -300,13 +277,13 @@
             <h3 class="paper-exp-title">Registries</h3>
             <p class="paper-exp-desc">
               Three complementary registries provide reusable knowledge at
-              different levels of abstraction. The <strong>Plan Registry</strong>
+              different levels of abstraction. The Plan Registry
               stores workflow templates from previously defined analyses, which the
               Planner retrieves when constructing a new plan. The
-              <strong>Agent Registry</strong> catalogs internal and external expert
+              Agent Registry catalogs internal and external expert
               agents and their capabilities, allowing the Recruiter to select an
-              appropriate specialist for each step. The <strong>Skill
-              Registry</strong> stores task-specific execution knowledge that is
+              appropriate specialist for each step. The Skill
+              Registry stores task-specific execution knowledge that is
               assigned alongside expert agents.
             </p>
           </div>
@@ -322,11 +299,11 @@
               succeeded, failed, or skipped, summarizes outcomes, and links
               generated artifacts to the relevant steps. The shared plan and role
               separation enable three layers of failure recovery: expert agents
-              resolve <strong>local execution errors</strong> within their own
-              loops, the Manager reruns a step whose <strong>approach is
-              ineffective</strong> with revised inputs, tools, or strategies, and
-              the Evaluator triggers replanning when the <strong>global plan
-              falls short</strong> of the request.
+              resolve local execution errors within their own
+              loops, the Manager reruns a step whose approach is
+              ineffective with revised inputs, tools, or strategies, and
+              the Evaluator triggers replanning when the global plan
+              falls short of the request.
             </p>
           </div>
 
@@ -367,13 +344,6 @@
                 <p>Update the skill file with warnings, fixes, and checks.</p>
               </li>
             </ol>
-            <p class="paper-exp-desc">
-              Starting the cell–cell communication ensemble workflow from a
-              deliberately minimal plan template, three optimizer rounds reduced
-              mean token usage by <strong>18.3%</strong> (12.0–24.5% per dataset)
-              and mean wall-clock time by <strong>36.8%</strong>, while all twelve
-              runs across three datasets matched the expert reference exactly.
-            </p>
           </div>
         </section>
 
@@ -382,11 +352,54 @@
           <h2 class="paper-section-title">Experiments</h2>
           <p class="paper-lead" style="margin-bottom:24px">
             We evaluate TissueAgent in three settings: reproducing published ST
-            workflows and transferring them to new data, collaborating with
+            figures and workflows and transferring them to new data, collaborating with
             externally developed agents, and end-to-end ST analysis across cell
             type and niche annotation, cell-type deconvolution, and cell-cell
             communication.
           </p>
+
+          <!-- BioFigBench-Spatial -->
+          <div class="paper-exp-block reveal" id="biofigbench">
+            <h3 class="paper-exp-title">Figure Reproduction on BioFigBench-Spatial</h3>
+            <p class="paper-exp-desc">
+              BioFigBench-Spatial evaluates whether agents can reconstruct
+              published ST analyses from data, reference figures, and textual
+              descriptions. Starting from 150 candidate panels in 16 published
+              papers, CurationAgent identifies eligible panels, maps them to
+              author-provided code and data, and verifies their reproduction in a
+              sandboxed environment, yielding 77 panels. Each task provides the
+              original figure, data, caption, and optional Methods text, while the
+              authors' code is withheld. Across the 77 panels, TissueAgent achieved
+              higher median SSIM, pHash, and ORB similarity than SpatialAgent and
+              Biomni. With two LLM judges, it scored a mean of 13.14 out of 25,
+              compared with 10.72 for SpatialAgent and 9.72 for Biomni, and five
+              domain experts gave it the highest mean score in every dimension
+              (18.35 ± 3.15 versus 14.58 ± 4.06 and 12.83 ± 4.37). Per-panel
+              results are on the <a href="index.html">figure reproduction page</a>.
+            </p>
+            <figure class="paper-figure-full">
+              <img src="assets/paper/biofigbench.webp" width="2200" height="2045"
+                alt="BioFigBench-Spatial curation pipeline with image-similarity, LLM-judge, and expert evaluations"
+                loading="lazy">
+              <figcaption>
+                <strong>Figure 2.</strong> BioFigBench-Spatial curation and
+                evaluation of scientific figure reproduction. <strong>a.</strong>
+                Benchmark construction from 150 candidate panels in 16 spatial-omics
+                papers; CurationAgent maps each panel to its raw data and
+                author-provided code and reproduces it in a sandbox, retaining 77
+                panels. <strong>b.</strong> Image-similarity evaluation (SSIM, pHash,
+                and ORB feature-match fraction) of figures reproduced by
+                TissueAgent, SpatialAgent, and Biomni; higher values indicate
+                greater similarity. <strong>c.</strong> LLM-based evaluation by two
+                judges over three runs on five criteria (figure quality, content,
+                visual fidelity, data fidelity, and scientific fidelity), rescaled
+                to a 0–25 total; bars show paper-level bootstrap 95% confidence
+                intervals. <strong>d.</strong> Expert evaluation across 24 panels
+                from 10 papers; bars show the standard deviation across the five
+                expert means.
+              </figcaption>
+            </figure>
+          </div>
 
           <!-- Reproduce-then-apply -->
           <div class="paper-exp-block reveal" id="reproduce">
@@ -397,92 +410,114 @@
               code. In the reproduce phase, TissueAgent reconstructs figure panels
               from a reference study using only text, reference images, and the
               original dataset; in the apply phase, it transfers the recovered
-              workflow to a new dataset. As a stress test, we used panel 2E from
-              Lohoff et al., a violin plot of gene-wise t-statistics that depends
-              on a custom spatial heterogeneity score described in the Methods.
-              Only TissueAgent and Biomni produced valid figures: TissueAgent
-              reproduced <strong>all 22 cell types</strong> and closely matched
-              the reference, whereas Biomni recovered 12. In blinded evaluation by
-              three LLM judges and five domain experts, TissueAgent achieved higher
-              aggregate scores than Biomni across all reviewers, with the largest
-              gains in data and scientific fidelity.
+              workflow to a new dataset. We selected five panels of varying
+              complexity from Lohoff et al., spanning UMAP visualization of
+              gastrulation atlas and seqFISH cells, spatial cell-type maps,
+              germ-layer organization, cell–cell contact patterns, and spatial
+              transcriptional heterogeneity, and compared TissueAgent with Biomni
+              and SpatialAgent. The reproduced spatial maps recovered the major
+              tissue compartments and germ-layer distributions.
+            </p>
+            <p class="paper-exp-desc">
+              As a stress test, we used panel 2e, a violin plot of gene-wise
+              t-statistics across cell types that depends on a custom spatial
+              heterogeneity score. Each agent received the dataset, a reference
+              image, a textual description, and a screenshot of the relevant
+              Methods section, and had to recover the underlying regression model
+              and intermediate computations before plotting. Across the same 20
+              matched cell types, TissueAgent achieved the highest Spearman rank
+              correlation with the reference cell-type ordering (ρ = 0.914),
+              followed closely by SpatialAgent (ρ = 0.904) and then Biomni
+              (ρ = 0.805). Combining LLM-based judging with expert assessment,
+              TissueAgent achieved significantly higher aggregate scores than
+              SpatialAgent and Biomni across all reviewers.
             </p>
             <p class="paper-exp-desc">
               Transferred to a Stereo-seq mouse embryo dataset from Chen et al.,
               the recovered workflow recreated all five panels despite the change
-              in technology and data format, and preserved key biological patterns
-              such as surface ectoderm localized to the embryo periphery. In a
-              second case study on high-grade serous ovarian cancer from Yeh et
-              al., analyses reconstructed on the CosMx discovery dataset and
-              transferred to the Visium validation dataset recovered the reported
-              findings while the published validation figures were withheld from
-              the agent.
+              in technology and data format. Key biological patterns were
+              preserved: surface ectoderm localized to the embryo boundary,
+              mirroring the ectodermal enrichment along the tissue periphery
+              reported by Lohoff et al., and spinal cord and brain again showed
+              strong within-cell-type spatial heterogeneity. The transferred
+              pipeline also surfaced observations not emphasized in the original
+              Chen et al. study, such as AGM cells preferentially co-localizing
+              with connective tissue and gut tube.
+            </p>
+            <p class="paper-exp-desc">
+              In a second case study on high-grade serous ovarian cancer from Yeh
+              et al., TissueAgent reproduced panels from the CosMx SMI discovery
+              dataset and transferred the recovered analyses to the 10x Visium
+              validation dataset, with the published validation figures withheld.
+              The transferred analyses recovered the reported patterns, including
+              the transcriptional separation of CD8<sup>+</sup> T cells in
+              malignant-cell-rich versus malignant-cell-poor niches and the
+              association between T/NK-cell infiltration and activation of the
+              M-TIL program in malignant cells.
             </p>
             <figure class="paper-figure-full">
-              <img src="assets/paper/reproduce-apply.webp" width="2200" height="2666"
+              <img src="assets/paper/reproduce-apply.webp" width="1815" height="2200"
                 alt="Reproduce-then-apply evaluation on Lohoff et al. and transfer to Chen et al. Stereo-seq data"
                 loading="lazy">
               <figcaption>
-                <strong>Figure 2.</strong> "Reproduce-then-apply" evaluation of
+                <strong>Figure 3.</strong> "Reproduce-then-apply" evaluation of
                 spatial transcriptomics workflows by TissueAgent.
                 <strong>a.</strong> From a reference figure, data, and Methods
                 descriptions, without author code, TissueAgent reconstructs the
                 analysis and visual specification, iteratively renders and repairs
                 the reproduction, and applies the recovered workflow to new data.
                 <strong>b.</strong> Published reference panels 2a–e from Lohoff et
-                al. <strong>c.</strong> TissueAgent reproductions arranged in the
+                al., showing UMAP embeddings, spatial cell-type and germ-layer
+                maps, a cell–cell contact map, and spatial transcriptional
+                heterogeneity. <strong>c.</strong> TissueAgent reproductions arranged in the
                 original panel layout. <strong>d.</strong> Human expert and LLM
                 evaluations of TissueAgent, SpatialAgent, and Biomni on panels
-                2a–e. <strong>e.</strong> The recovered workflow applied to Chen et
-                al.'s Stereo-seq mouse embryo section E9.5_E2S4.
+                2b–e (mean ± SD). <strong>e.</strong> The recovered workflow applied
+                to Chen et al.'s Stereo-seq mouse embryo section E9.5_E2S4, showing
+                a newly computed UMAP, spatial tissue maps, selected tissue
+                distributions, neighborhood enrichment, and gene-wise spatial
+                t-statistic distributions.
               </figcaption>
             </figure>
-            <div class="paper-results-table-wrap">
-              <table class="paper-results-table">
-                <thead>
-                  <tr><th class="setting">Agent</th><th>Cell types reproduced</th><th>Spearman ρ vs. original ordering</th></tr>
-                </thead>
-                <tbody>
-                  <tr class="row-base"><td class="setting">Biomni</td><td>12 / 22</td><td>≈ 0.5</td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td>Invalid figure</td><td>—</td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td class="best">22 / 22</td><td class="best">≈ 0.9</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="paper-results-table-caption"><strong>Table 1.</strong> Reproduction of panel 2E from Lohoff et al., a violin plot of gene-wise t-statistics across 22 cell types built on a custom spatial-heterogeneity score. Spearman ρ compares the reproduced and original cell-type orderings.</p>
           </div>
 
           <!-- Simulation -->
           <div class="paper-exp-block reveal" id="simulation">
             <h3 class="paper-exp-title">Controlled Reproduction with Simulated
               Ground Truth</h3>
-            <p class="paper-exp-desc">
-              Published figures do not always provide enough ground truth to tell
-              whether a visually plausible reproduction also recovers the
-              underlying biological signal. We therefore simulated spatial
-              datasets with scDesign3 and scMultiSim for spatial cell-type
-              composition, spatial niche identification, and ligand-receptor
-              analysis. Ground-truth annotations were used only for evaluation.
-              TissueAgent recovered the predefined biological quantities rather
-              than merely reproducing the visual appearance of each reference
-              panel.
-            </p>
-            <div class="paper-results-table-wrap">
-              <table class="paper-results-table">
-                <thead>
-                  <tr><th class="setting">Task</th><th class="setting">Evaluation</th><th>TissueAgent</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td class="setting" rowspan="2">Spatial cell-type composition<br><span class="sd">scDesign3 · 5 cell types, 120 locations</span></td><td class="text-left">Reproduce the ground-truth composition map (mean Pearson r)</td><td class="best">1.000</td></tr>
-                  <tr><td class="text-left">Reconstruct the cell2location analysis (mean r with true proportions)</td><td class="best">0.989</td></tr>
-                  <tr><td class="setting" rowspan="2">Spatial niche identification<br><span class="sd">scDesign3 · 4 niches, 320 locations</span></td><td class="text-left">Reproduce the predefined niche map (ARI)</td><td class="best">1.000</td></tr>
-                  <tr><td class="text-left">Infer niches by spatial smoothing and Leiden clustering (ARI; reference workflow 0.949)</td><td class="best">0.981</td></tr>
-                  <tr><td class="setting" rowspan="2">Ligand-receptor analysis<br><span class="sd">scMultiSim · 120 cells, 4 predefined LR pairs</span></td><td class="text-left">Ground-truth pairs ranked in the top ten</td><td class="best">3 of 4</td></tr>
-                  <tr><td class="text-left">Pairs shared with the reference top-ten ranking</td><td class="best">7 of 10</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="paper-results-table-caption"><strong>Table 2.</strong> Controlled reproduction on simulated spatial datasets. Ground-truth annotations were used only for evaluation and were not provided to the inference procedures.</p>
+            <figure class="paper-figure-full">
+              <img src="assets/paper/simulation-1.webp" width="2200" height="2323"
+                alt="Controlled reproduction of spatial cell-type composition analyses on simulated data"
+                loading="lazy">
+              <figcaption>
+                <strong>Supplementary Figure S3.</strong> Controlled reproduction of
+                spatial cell-type composition analyses. <strong>a.</strong>
+                Ground-truth spot-level cell-type compositions, TissueAgent
+                reproduction and agreement with ground truth (mean cell-type-wise
+                Pearson correlation = 1.000). <strong>b.</strong> Reference
+                Cell2location-inferred compositions, TissueAgent reproduction and
+                agreement with known spot compositions (mean correlation = 0.989).
+                <strong>c.</strong> Cell-type-specific correlations with
+                ground-truth compositions for the reference and reproduced
+                analyses, and their differences.
+              </figcaption>
+            </figure>
+            <figure class="paper-figure-full">
+              <img src="assets/paper/simulation-2.webp" width="2200" height="2323"
+                alt="Controlled reproduction of spatial niche and ligand-receptor analyses on simulated data"
+                loading="lazy">
+              <figcaption>
+                <strong>Supplementary Figure S4.</strong> Controlled reproduction of
+                spatial niche and ligand–receptor analyses. <strong>d.</strong>
+                Ground-truth spatial niches, TissueAgent reproduction and agreement
+                with ground truth (ARI = 1.000). <strong>e.</strong> Reference and
+                reproduced niche assignments obtained using spatial smoothing and
+                Leiden clustering, with their agreement (ARI = 0.96); red circles
+                mark discordant locations. <strong>f.</strong> Reference and
+                reproduced ligand–receptor rankings, with planted interactions
+                highlighted; seven of the top ten interactions were shared.
+              </figcaption>
+            </figure>
           </div>
 
           <!-- External agents -->
@@ -497,7 +532,7 @@
               dataset, we asked whether atrial fibroblasts in the AVN/AV ring
               cellular community exhibit a distinct developmental program. The
               Coding Agent performed differential expression, the external
-              <strong>GeneAgent</strong> interpreted the marker genes as
+              GeneAgent interpreted the marker genes as
               consistent with <em>Cardiac Development and Remodeling</em>, and the
               Hypothesis Critic Agent assessed the claim from the combined
               evidence, supporting a specialized, ECM-rich, conduction-associated
@@ -505,9 +540,9 @@
             </p>
             <p class="paper-exp-desc">
               Recruitment through TissueAgent preserves each external agent's
-              standalone performance. Recruited <strong>GeneGPT</strong> reached
+              standalone performance. Recruited GeneGPT reached
               79.1% overall accuracy on the 450 GeneTuring questions (77.6% when
-              run directly), and recruited <strong>CellVoyager</strong> matched or
+              run directly), and recruited CellVoyager matched or
               exceeded direct CellVoyager on CellBench, with the Recruiter
               correctly selecting and invoking it in all 150 workflows.
             </p>
@@ -516,7 +551,7 @@
                 alt="TissueAgent orchestrates the Coding Agent, GeneAgent, and Hypothesis Critic Agent to evaluate a biological claim"
                 loading="lazy">
               <figcaption>
-                <strong>Figure 3.</strong> TissueAgent orchestrates multiple expert
+                <strong>Figure 4.</strong> TissueAgent orchestrates multiple expert
                 agents to evaluate a biological claim from the developing human
                 heart study. The Coding Agent performs differential expression
                 analysis and passes the top 10 ranked genes, spanning both
@@ -526,44 +561,26 @@
                 Evaluator and the Reporter.
               </figcaption>
             </figure>
-            <div class="paper-results-table-wrap">
-              <table class="paper-results-table">
-                <colgroup><col><col><col><col class="col-best"><col></colgroup>
-                <thead>
-                  <tr><th class="setting">Task</th><th># Questions</th><th>Direct GeneGPT</th><th class="th-best">TissueAgent + GeneGPT</th><th>TissueAgent w/o Agent Registry</th></tr>
-                </thead>
-                <tbody>
-                  <tr class="row-base"><td class="setting">Gene alias</td><td>50</td><td>76.0%</td><td>76.0%</td><td class="best">84.0%</td></tr>
-                  <tr class="row-base"><td class="setting">Gene disease association</td><td>50</td><td class="best">78.0%</td><td class="best">78.0%</td><td>60.3%</td></tr>
-                  <tr class="row-base"><td class="setting">Gene location</td><td>50</td><td>56.0%</td><td>46.0%</td><td class="best">64.0%</td></tr>
-                  <tr class="row-base"><td class="setting">Human genome DNA alignment</td><td>50</td><td class="best">44.0%</td><td class="best">44.0%</td><td>0.0%</td></tr>
-                  <tr class="row-base"><td class="setting">Multi-species DNA alignment</td><td>50</td><td>68.0%</td><td class="best">78.0%</td><td>2.0%</td></tr>
-                  <tr class="row-base"><td class="setting">Gene name conversion</td><td>50</td><td>98.0%</td><td class="best">100.0%</td><td class="best">100.0%</td></tr>
-                  <tr class="row-base"><td class="setting">Protein-coding genes</td><td>50</td><td>92.0%</td><td class="best">96.0%</td><td>86.0%</td></tr>
-                  <tr class="row-base"><td class="setting">Gene SNP association</td><td>50</td><td class="best">100.0%</td><td>98.0%</td><td class="best">100.0%</td></tr>
-                  <tr class="row-base"><td class="setting">SNP location</td><td>50</td><td>86.0%</td><td>96.0%</td><td class="best">100.0%</td></tr>
-                  <tr class="row-total"><td class="setting">Mean benchmark score</td><td>450</td><td>77.6%</td><td class="best">79.1%</td><td>66.3%</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="paper-results-table-caption"><strong>Table 3.</strong> GeneTuring accuracy of direct GeneGPT, TissueAgent-recruited GeneGPT, and TissueAgent without Agent Registry access. Direct and recruited GeneGPT use the same LLM, prompt configuration, and tools. <span class="best">Bold</span> marks the best score per task.</p>
-            <div class="paper-results-table-wrap">
-              <table class="paper-results-table">
-                <thead>
-                  <tr><th class="setting">Model</th><th>Micro-Avg</th><th>Macro-Avg</th></tr>
-                </thead>
-                <tbody>
-                  <tr class="row-base"><td class="setting">Direct CellVoyager</td><td>69.48% ± 2.17%</td><td>72.74% ± 1.57%</td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent-recruited CellVoyager</td><td class="best">73.64% ± 2.77%</td><td class="best">75.85% ± 1.82%</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="paper-results-table-caption"><strong>Table 4.</strong> Direct and TissueAgent-recruited CellVoyager on CellBench (50 published scRNA-seq studies, 483 held-out reference analyses), mean ± s.d. over three paired runs. Recruited proposals are scored directly, without additional critique or revision by TissueAgent.</p>
           </div>
 
-          <!-- Annotation -->
-          <div class="paper-exp-block reveal" id="annotation">
-            <h3 class="paper-exp-title">Cell Type and Niche Annotation</h3>
+          <!-- Common tasks -->
+          <div class="paper-exp-block reveal" id="common-tasks">
+            <h3 class="paper-exp-title">Common Spatial Transcriptomics Tasks</h3>
+            <p class="paper-exp-desc">
+              Beyond reproducing published studies, TissueAgent runs the routine
+              analyses that make up most ST projects end to end: cell type and
+              niche annotation, cell-type deconvolution, and cell-cell
+              communication. For each task it inspects the data, selects or
+              combines methods suited to it, tunes them, and checks the results
+              before reporting. Against general-purpose and ST-specific agents
+              (Biomni, SpatialAgent, and STAgent), it more closely recovered
+              ground-truth cell types and anatomical niches, achieved the strongest
+              deconvolution scores while being the only agent to complete every
+              run, and produced the most spatially coherent, reproducible, and
+              reliable ligand-receptor rankings.
+            </p>
+
+            <h4 class="paper-exp-subtitle" id="annotation">Cell Type and Niche Annotation</h4>
             <p class="paper-exp-desc">
               For cell-type annotation, TissueAgent assesses the biological
               context, expression state, and method-suitability evidence to select
@@ -574,21 +591,12 @@
               composition and spatial features, and assigns an anatomical label
               with a brief biological justification.
             </p>
-            <p class="paper-exp-desc">
-              Across developing human heart (MERFISH), ovarian cancer (Xenium), and
-              mouse brain (Stereo-seq) datasets, TissueAgent achieves the
-              <strong>best overall mean rank (1.33)</strong>, followed by STAgent
-              (2.92). On the developing heart it has the highest macro precision,
-              balanced accuracy, and macro F1, improving identification of rare
-              cell types, and in niche annotation it has the highest accuracy,
-              balanced accuracy, and macro F1.
-            </p>
             <figure class="paper-figure-full">
               <img src="assets/paper/annotation.webp" width="2200" height="1448"
                 alt="Cell type annotation UMAPs and niche maps for the developing human heart, with benchmark bar charts"
                 loading="lazy">
               <figcaption>
-                <strong>Figure 4.</strong> TissueAgent automates cell type and
+                <strong>Figure 5.</strong> TissueAgent automates cell type and
                 niche annotation. <strong>a.</strong> UMAP visualization of the
                 developing human heart dataset colored by cell type: ground truth
                 labels and predictions from CellTypist, GPTCellType, Biomni,
@@ -599,57 +607,8 @@
                 SpatialAgent, STAgent, and TissueAgent.
               </figcaption>
             </figure>
-            <div class="paper-results-table-wrap">
-              <table class="paper-results-table">
-                <thead>
-                  <tr><th class="setting">Dataset</th><th class="setting">Method</th><th>Accuracy</th><th>Macro precision</th><th>Balanced accuracy</th><th>Macro F1</th></tr>
-                </thead>
-                <tbody>
-                  <tr class="row-base"><td class="setting" rowspan="6">Developing human heart (MERFISH)</td><td class="setting">CellTypist</td><td>0.612<span class="sd"> ± 0.005</span></td><td>0.307<span class="sd"> ± 0.003</span></td><td>0.315<span class="sd"> ± 0.003</span></td><td>0.239<span class="sd"> ± 0.003</span></td></tr>
-                  <tr class="row-base"><td class="setting">GPTCellType</td><td>0.801<span class="sd"> ± 0.011</span></td><td>0.450<span class="sd"> ± 0.014</span></td><td>0.351<span class="sd"> ± 0.007</span></td><td>0.391<span class="sd"> ± 0.009</span></td></tr>
-                  <tr class="row-base"><td class="setting">Biomni</td><td>0.768<span class="sd"> ± 0.030</span></td><td>0.333<span class="sd"> ± 0.053</span></td><td>0.268<span class="sd"> ± 0.093</span></td><td>0.288<span class="sd"> ± 0.074</span></td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td class="best">0.905<span class="sd"> ± 0.006</span></td><td>0.558<span class="sd"> ± 0.130</span></td><td>0.692<span class="sd"> ± 0.138</span></td><td>0.552<span class="sd"> ± 0.129</span></td></tr>
-                  <tr class="row-base"><td class="setting">STAgent</td><td>0.746<span class="sd"> ± 0.167</span></td><td>0.592<span class="sd"> ± 0.179</span></td><td>0.614<span class="sd"> ± 0.150</span></td><td>0.568<span class="sd"> ± 0.188</span></td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td>0.851<span class="sd"> ± 0.007</span></td><td class="best">0.596<span class="sd"> ± 0.036</span></td><td class="best">0.727<span class="sd"> ± 0.061</span></td><td class="best">0.616<span class="sd"> ± 0.038</span></td></tr>
-                  <tr class="row-base"><td class="setting" rowspan="6">Ovarian cancer (Xenium)</td><td class="setting">CellTypist</td><td>0.904</td><td>0.641<span class="sd"> ± 0.004</span></td><td>0.599<span class="sd"> ± 0.012</span></td><td>0.609<span class="sd"> ± 0.012</span></td></tr>
-                  <tr class="row-base"><td class="setting">GPTCellType</td><td>0.876<span class="sd"> ± 0.014</span></td><td>0.552<span class="sd"> ± 0.011</span></td><td>0.570<span class="sd"> ± 0.043</span></td><td>0.546<span class="sd"> ± 0.004</span></td></tr>
-                  <tr class="row-base"><td class="setting">Biomni</td><td>0.875<span class="sd"> ± 0.025</span></td><td>0.557<span class="sd"> ± 0.102</span></td><td>0.608<span class="sd"> ± 0.092</span></td><td>0.573<span class="sd"> ± 0.100</span></td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td>0.382<span class="sd"> ± 0.006</span></td><td>0.297<span class="sd"> ± 0.005</span></td><td>0.455<span class="sd"> ± 0.035</span></td><td>0.334<span class="sd"> ± 0.006</span></td></tr>
-                  <tr class="row-base"><td class="setting">STAgent</td><td>0.718<span class="sd"> ± 0.145</span></td><td>0.627<span class="sd"> ± 0.022</span></td><td class="best">0.658<span class="sd"> ± 0.093</span></td><td>0.598<span class="sd"> ± 0.041</span></td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td class="best">0.907<span class="sd"> ± 0.004</span></td><td class="best">0.660<span class="sd"> ± 0.029</span></td><td>0.618<span class="sd"> ± 0.035</span></td><td class="best">0.626<span class="sd"> ± 0.031</span></td></tr>
-                  <tr class="row-base"><td class="setting" rowspan="6">Mouse brain (Stereo-seq)</td><td class="setting">CellTypist</td><td>0.313<span class="sd"> ± 0.004</span></td><td class="best">0.393<span class="sd"> ± 0.024</span></td><td>0.200<span class="sd"> ± 0.007</span></td><td>0.214<span class="sd"> ± 0.010</span></td></tr>
-                  <tr class="row-base"><td class="setting">GPTCellType</td><td>0.492<span class="sd"> ± 0.070</span></td><td>0.281<span class="sd"> ± 0.039</span></td><td>0.253<span class="sd"> ± 0.042</span></td><td>0.228<span class="sd"> ± 0.035</span></td></tr>
-                  <tr class="row-base"><td class="setting">Biomni</td><td>0.427<span class="sd"> ± 0.207</span></td><td>0.187<span class="sd"> ± 0.079</span></td><td>0.172<span class="sd"> ± 0.019</span></td><td>0.135<span class="sd"> ± 0.057</span></td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td>0.455</td><td>0.102<span class="sd"> ± 0.009</span></td><td>0.130<span class="sd"> ± 0.003</span></td><td>0.112<span class="sd"> ± 0.005</span></td></tr>
-                  <tr class="row-base"><td class="setting">STAgent</td><td>0.327<span class="sd"> ± 0.124</span></td><td>0.327<span class="sd"> ± 0.057</span></td><td class="best">0.315<span class="sd"> ± 0.028</span></td><td>0.249<span class="sd"> ± 0.067</span></td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td class="best">0.496<span class="sd"> ± 0.004</span></td><td>0.352<span class="sd"> ± 0.004</span></td><td>0.313<span class="sd"> ± 0.001</span></td><td class="best">0.320<span class="sd"> ± 0.001</span></td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="paper-results-table-caption"><strong>Table 5.</strong> Cell-type annotation benchmark, mean ± s.d. across three runs where available. <span class="best">Bold</span> marks the best mean for each metric within each dataset.</p>
-            <div class="paper-results-table-wrap">
-              <table class="paper-results-table">
-                <thead>
-                  <tr><th class="setting">Dataset</th><th class="setting">Method</th><th>Accuracy</th><th>Macro precision</th><th>Balanced accuracy</th><th>Macro F1</th></tr>
-                </thead>
-                <tbody>
-                  <tr class="row-base"><td class="setting" rowspan="4">Developing human heart (MERFISH)</td><td class="setting">Biomni</td><td>0.490<span class="sd"> ± 0.022</span></td><td>0.607<span class="sd"> ± 0.029</span></td><td>0.613<span class="sd"> ± 0.046</span></td><td>0.596<span class="sd"> ± 0.038</span></td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td>0.660<span class="sd"> ± 0.307</span></td><td class="best">0.728<span class="sd"> ± 0.027</span></td><td>0.571<span class="sd"> ± 0.286</span></td><td>0.593<span class="sd"> ± 0.216</span></td></tr>
-                  <tr class="row-base"><td class="setting">STAgent</td><td>0.782<span class="sd"> ± 0.015</span></td><td>0.670<span class="sd"> ± 0.019</span></td><td>0.652<span class="sd"> ± 0.019</span></td><td>0.639<span class="sd"> ± 0.016</span></td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td class="best">0.827<span class="sd"> ± 0.004</span></td><td>0.719<span class="sd"> ± 0.007</span></td><td class="best">0.757<span class="sd"> ± 0.009</span></td><td class="best">0.729<span class="sd"> ± 0.008</span></td></tr>
-                  <tr class="row-base"><td class="setting" rowspan="4">Ovarian cancer (Xenium)</td><td class="setting">Biomni</td><td>0.899<span class="sd"> ± 0.006</span></td><td class="best">0.625<span class="sd"> ± 0.109</span></td><td>0.518<span class="sd"> ± 0.034</span></td><td>0.535<span class="sd"> ± 0.032</span></td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td>0.755<span class="sd"> ± 0.020</span></td><td>0.558<span class="sd"> ± 0.006</span></td><td class="best">0.601<span class="sd"> ± 0.040</span></td><td>0.541<span class="sd"> ± 0.004</span></td></tr>
-                  <tr class="row-base"><td class="setting">STAgent</td><td>0.872<span class="sd"> ± 0.029</span></td><td>0.604<span class="sd"> ± 0.052</span></td><td>0.466<span class="sd"> ± 0.052</span></td><td>0.492<span class="sd"> ± 0.063</span></td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td class="best">0.899<span class="sd"> ± 0.037</span></td><td>0.554<span class="sd"> ± 0.023</span></td><td>0.556<span class="sd"> ± 0.009</span></td><td class="best">0.554<span class="sd"> ± 0.010</span></td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="paper-results-table-caption"><strong>Table 6.</strong> Spatial niche annotation benchmark, mean ± s.d. across three seeds. <span class="best">Bold</span> marks the best mean for each metric within each dataset.</p>
-          </div>
 
-          <!-- Deconvolution -->
-          <div class="paper-exp-block reveal" id="deconvolution">
-            <h3 class="paper-exp-title">Cell-Type Deconvolution</h3>
+            <h4 class="paper-exp-subtitle" id="deconvolution">Cell-Type Deconvolution</h4>
             <p class="paper-exp-desc">
               When no method is specified, an LLM-based router examines the
               structure of the spatial dataset, its compatibility with the
@@ -664,14 +623,25 @@
               achieved the strongest composite score on Visium DLPFC, where it
               selected and tuned cell2location, and on MERFISH-derived spots, where
               its router selected NNLS at every resolution, and it was the only
-              agent to <strong>complete every run</strong>.
+              agent to complete every run.
+            </p>
+
+            <h4 class="paper-exp-subtitle" id="ccc">Cell-Cell Communication</h4>
+            <p class="paper-exp-desc">
+              Because no single ligand-receptor scoring method is authoritative,
+              TissueAgent runs a consensus ensemble of LIANA+, stLearn, COMMOT, and
+              decoupleR and aggregates within-method percentile ranks into one
+              consensus ranking. On three datasets derived from SpatialCCCbench,
+              it achieved the highest spatial coherence and the strongest
+              cell-type adjacency of any agent, and was the most reproducible and
+              reliable (Figure 6f).
             </p>
             <figure class="paper-figure-full">
-              <img src="assets/paper/deconvolution-ccc.webp" width="2200" height="1586"
+              <img src="assets/paper/deconvolution-ccc.webp" width="2200" height="1585"
                 alt="Cell-type deconvolution maps and benchmarks, and cell-cell communication analysis"
                 loading="lazy">
               <figcaption>
-                <strong>Figure 5.</strong> Cell-type deconvolution and cell-cell
+                <strong>Figure 6.</strong> Cell-type deconvolution and cell-cell
                 communication analysis by TissueAgent. <strong>a.</strong> Spatial
                 abundance maps for four major cell types and the inferred global
                 cell-type composition. <strong>b.</strong> Pearson correlations
@@ -685,70 +655,6 @@
                 reproducibility, and reliability.
               </figcaption>
             </figure>
-            <div class="paper-results-table-wrap">
-              <table class="paper-results-table">
-                <thead>
-                  <tr><th class="setting">Benchmark</th><th class="setting">Method</th><th>RMSE ↓</th><th>JSD ↓</th><th>Pearson r ↑</th><th>Score ↑</th><th>Completion ↑</th></tr>
-                </thead>
-                <tbody>
-                  <tr class="row-base"><td class="setting" rowspan="8">Visium DLPFC</td><td class="setting">NNLS</td><td>0.352</td><td>0.247</td><td>0.300</td><td>68.35</td><td>—</td></tr>
-                  <tr class="row-base"><td class="setting">CARD</td><td>0.344</td><td>0.332</td><td>0.223</td><td>64.50</td><td>—</td></tr>
-                  <tr class="row-base"><td class="setting">Tangram</td><td>0.318</td><td>0.258</td><td>0.330</td><td>69.62<span class="sd"> ± 0.02</span></td><td>—</td></tr>
-                  <tr class="row-base"><td class="setting">cell2location</td><td>0.303</td><td class="best">0.221</td><td>0.422</td><td>72.88<span class="sd"> ± 0.02</span></td><td>—</td></tr>
-                  <tr class="row-base"><td class="setting">Biomni</td><td>0.349<span class="sd"> ± 0.009</span></td><td>0.259<span class="sd"> ± 0.036</span></td><td>0.242<span class="sd"> ± 0.117</span></td><td>67.09<span class="sd"> ± 3.40</span></td><td>60%</td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td>0.321<span class="sd"> ± 0.015</span></td><td>0.286<span class="sd"> ± 0.032</span></td><td>0.318<span class="sd"> ± 0.113</span></td><td>68.40<span class="sd"> ± 2.57</span></td><td>60%</td></tr>
-                  <tr class="row-base"><td class="setting">STAgent</td><td>0.346<span class="sd"> ± 0.015</span></td><td>0.259<span class="sd"> ± 0.046</span></td><td>0.203<span class="sd"> ± 0.108</span></td><td>66.55<span class="sd"> ± 3.74</span></td><td>80%</td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td class="best">0.303</td><td class="best">0.221</td><td class="best">0.422<span class="sd"> ± 0.001</span></td><td class="best">72.90<span class="sd"> ± 0.03</span></td><td class="best">100%</td></tr>
-                  <tr class="row-base"><td class="setting" rowspan="8">MERFISH</td><td class="setting">NNLS</td><td class="best">0.152</td><td class="best">0.102</td><td class="best">0.789</td><td class="best">88.02</td><td>—</td></tr>
-                  <tr class="row-base"><td class="setting">CARD</td><td>0.234</td><td>0.302</td><td>0.677</td><td>76.75</td><td>—</td></tr>
-                  <tr class="row-base"><td class="setting">Tangram</td><td>0.224</td><td>0.233</td><td>0.586</td><td>77.88<span class="sd"> ± 0.01</span></td><td>—</td></tr>
-                  <tr class="row-base"><td class="setting">cell2location</td><td>0.208<span class="sd"> ± 0.001</span></td><td>0.277<span class="sd"> ± 0.002</span></td><td>0.758<span class="sd"> ± 0.001</span></td><td>79.78<span class="sd"> ± 0.09</span></td><td>—</td></tr>
-                  <tr class="row-base"><td class="setting">Biomni</td><td>0.229<span class="sd"> ± 0.105</span></td><td>0.285<span class="sd"> ± 0.297</span></td><td>0.572<span class="sd"> ± 0.376</span></td><td>75.76<span class="sd"> ± 19.54</span></td><td>80%</td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td>0.288<span class="sd"> ± 0.099</span></td><td>0.366<span class="sd"> ± 0.270</span></td><td>0.457<span class="sd"> ± 0.241</span></td><td>69.14<span class="sd"> ± 15.72</span></td><td>73.3%</td></tr>
-                  <tr class="row-base"><td class="setting">STAgent</td><td>0.193<span class="sd"> ± 0.066</span></td><td>0.193<span class="sd"> ± 0.143</span></td><td>0.697<span class="sd"> ± 0.222</span></td><td>82.10<span class="sd"> ± 10.51</span></td><td>80%</td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td class="best">0.152</td><td class="best">0.102</td><td class="best">0.789</td><td class="best">88.02</td><td class="best">100%</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="paper-results-table-caption"><strong>Table 7.</strong> Spatial deconvolution benchmark and agent task-completion rates. The composite performance score (0–100) combines RMSE, Jensen–Shannon divergence, and Pearson correlation. Agents were run five times per condition; non-agent methods are deterministic. <span class="best">Bold</span> marks the best mean per metric within each benchmark.</p>
-          </div>
-
-          <!-- CCC -->
-          <div class="paper-exp-block reveal" id="ccc">
-            <h3 class="paper-exp-title">Cell-Cell Communication</h3>
-            <p class="paper-exp-desc">
-              Because no single ligand-receptor scoring method is authoritative,
-              TissueAgent runs a consensus ensemble of LIANA+, stLearn, COMMOT, and
-              decoupleR and aggregates within-method percentile ranks into one
-              consensus ranking. On three datasets derived from SpatialCCCbench,
-              it achieved the highest spatial coherence and the strongest
-              cell-type adjacency of any agent, and was the most reproducible and
-              reliable (Figure 5f).
-            </p>
-            <p class="paper-exp-desc">
-              In an Alzheimer's disease cohort from Miyoshi et al., TissueAgent
-              identified stage-dependent interactions, such as GRN-EGFR emerging in
-              early AD and AD but not in controls, cross-checked top-ranked pairs
-              against the literature,
-              and assigned each a 0–5 literature-support score. These scores
-              correlated with independent AD evidence from Open Targets and Europe
-              PMC (Spearman ρ = 0.31–0.39, p &lt; 0.02, n = 60 pairs).
-            </p>
-            <div class="paper-results-table-wrap">
-              <table class="paper-results-table">
-                <thead>
-                  <tr><th class="setting">Method</th><th>Reproducibility (top-K overlap)</th><th>Reliability (valid outputs)</th></tr>
-                </thead>
-                <tbody>
-                  <tr class="row-base"><td class="setting">GPT-5.1</td><td>0.01</td><td>89%</td></tr>
-                  <tr class="row-base"><td class="setting">Biomni</td><td>0.38</td><td>42%</td></tr>
-                  <tr class="row-base"><td class="setting">SpatialAgent</td><td>0.83</td><td>60%</td></tr>
-                  <tr class="row-base"><td class="setting">STAgent</td><td>—</td><td>10%</td></tr>
-                  <tr class="row-ours"><td class="setting">TissueAgent</td><td class="best">1.00</td><td class="best">100%</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="paper-results-table-caption"><strong>Table 8.</strong> Operational axes of the cell-cell communication benchmark on human DLPFC Visium, human lymph node Visium, and mouse hypothalamic MERFISH. Reproducibility is the top-K overlap across repeated runs; reliability is the fraction of attempts that produce a well-formed LR output within a fixed budget. GPT-5.1 selected a different method on nearly every run.</p>
           </div>
         </section>
 
