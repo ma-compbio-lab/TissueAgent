@@ -418,43 +418,6 @@
               and SpatialAgent. The reproduced spatial maps recovered the major
               tissue compartments and germ-layer distributions.
             </p>
-            <p class="paper-exp-desc">
-              As a stress test, we used panel 2e, a violin plot of gene-wise
-              t-statistics across cell types that depends on a custom spatial
-              heterogeneity score. Each agent received the dataset, a reference
-              image, a textual description, and a screenshot of the relevant
-              Methods section, and had to recover the underlying regression model
-              and intermediate computations before plotting. Across the same 20
-              matched cell types, TissueAgent achieved the highest Spearman rank
-              correlation with the reference cell-type ordering (ρ = 0.914),
-              followed closely by SpatialAgent (ρ = 0.904) and then Biomni
-              (ρ = 0.805). Combining LLM-based judging with expert assessment,
-              TissueAgent achieved significantly higher aggregate scores than
-              SpatialAgent and Biomni across all reviewers.
-            </p>
-            <p class="paper-exp-desc">
-              Transferred to a Stereo-seq mouse embryo dataset from Chen et al.,
-              the recovered workflow recreated all five panels despite the change
-              in technology and data format. Key biological patterns were
-              preserved: surface ectoderm localized to the embryo boundary,
-              mirroring the ectodermal enrichment along the tissue periphery
-              reported by Lohoff et al., and spinal cord and brain again showed
-              strong within-cell-type spatial heterogeneity. The transferred
-              pipeline also surfaced observations not emphasized in the original
-              Chen et al. study, such as AGM cells preferentially co-localizing
-              with connective tissue and gut tube.
-            </p>
-            <p class="paper-exp-desc">
-              In a second case study on high-grade serous ovarian cancer from Yeh
-              et al., TissueAgent reproduced panels from the CosMx SMI discovery
-              dataset and transferred the recovered analyses to the 10x Visium
-              validation dataset, with the published validation figures withheld.
-              The transferred analyses recovered the reported patterns, including
-              the transcriptional separation of CD8<sup>+</sup> T cells in
-              malignant-cell-rich versus malignant-cell-poor niches and the
-              association between T/NK-cell infiltration and activation of the
-              M-TIL program in malignant cells.
-            </p>
             <figure class="paper-figure-full">
               <img src="assets/paper/reproduce-apply.webp" width="1815" height="2200"
                 alt="Reproduce-then-apply evaluation on Lohoff et al. and transfer to Chen et al. Stereo-seq data"
@@ -537,14 +500,6 @@
               Hypothesis Critic Agent assessed the claim from the combined
               evidence, supporting a specialized, ECM-rich, conduction-associated
               state.
-            </p>
-            <p class="paper-exp-desc">
-              Recruitment through TissueAgent preserves each external agent's
-              standalone performance. Recruited GeneGPT reached
-              79.1% overall accuracy on the 450 GeneTuring questions (77.6% when
-              run directly), and recruited CellVoyager matched or
-              exceeded direct CellVoyager on CellBench, with the Recruiter
-              correctly selecting and invoking it in all 150 workflows.
             </p>
             <figure class="paper-figure-full">
               <img src="assets/paper/external-agents.webp" width="2200" height="1238"
