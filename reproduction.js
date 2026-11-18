@@ -419,7 +419,8 @@
       about("figure")
     );
 
-    // Source papers, most panels first.
+    // Source papers, most panels first (only when the page has a table for them).
+    if (!papersTable) return;
     const head = el("thead");
     const hr = el("tr");
     ["Paper", "Journal", "Year", "Panels"].forEach((h) => hr.append(el("th", h === "Paper" || h === "Journal" ? "setting" : null, h)));
